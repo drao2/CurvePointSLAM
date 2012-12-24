@@ -42,24 +42,16 @@
 #define HUGER_NUMBER    10000000.0
 
 
-void vodommodelfunc(double *params, double *, int m, int n, void *datax);
-void stereo_image2body(double * stereo_pt, CvMat * body_pt);
-void stereo_body2image(CvMat * body_pt, double * stereo_pt);
-
-
-class VisualOdomClass
+class PointFeaturesClass
 {
 public:
-	VisualOdomClass();
-	~VisualOdomClass();
+	PointFeaturesClass();
+	~PointFeaturesClass();
 
-	void getPoseEstimate(IplImage ** last_image, IplImage ** current_image, double * params);
-        void getStereoPts(IplImage ** last_image, IplImage ** current_image, double * last_stereo_pts, double * current_stereo_pts, int * num_features);
-        void PoseFromRANSAC(double * last_stereo_pts, double * current_stereo_pts, int num_pts, double * params);
-        double PoseFromNPts(double * last_stereo_pts, double * current_stereo_pts, double * params, int num_pts);
-        void RandomSampleWithoutReplacement(int max_num, int num_to_choose, int * samples);
-        double GetReprojectionError(double * last_stereo_pt, double * current_stereo_pt, double * params);
-        void RemoveOutliers(double * last_stereo_pts, double * current_stereo_pts, int num_pts, double * params);
+	void getPointMeasurements(IplImage ** image, double * measurements, int * correspondence, int * num_meas);
+        void getStereoPts(IplImage ** image, double * stereo_pts, int * num_features);
+        void determineDataAssoc(double * measurements, int num_features);
+
 private:
         char optical_flow_found_feature[MAX_VODOM_FEATURES];
         float optical_flow_feature_error[MAX_VODOM_FEATURES];
@@ -68,6 +60,8 @@ private:
         
 
         IplImage *eig_image, *temp_image, *pyramid1, *pyramid2;
+        
+        std::vector<IplImage *> existing_landmark_patches;
 };
 
 

@@ -11,7 +11,7 @@
 #include "displayClass.h"
 #include "dataAssocClass.h"
 #include "curveFittingClass.h"
-#include "vodom.h"
+#include "pointFeaturesClass.h"
 
 #define ALPHA   1.0
 
@@ -147,7 +147,7 @@ int main(void)
         CurveFittingClass * curveFitter = new CurveFittingClass;
         DataAssocClass * curveMatcher = new DataAssocClass[2];
 	FeatureDetector *features = new FeatureDetector[NUM_CAMERAS];
-        VisualOdomClass *visualOdom = new VisualOdomClass;
+        PointFeaturesClass *pointFeatures = new PointFeaturesClass;
 
 	IplImage * image[NUM_CAMERAS];
 	IplImage * image_raw[NUM_CAMERAS];
@@ -438,9 +438,12 @@ int main(void)
                 //if (!first_time)
                     //EKF->PredictKF();
             }
+            int num_meas = 3;
+            double measurements[50][4];
+            int correspondences[50];
             if(!first_time)
             {
-                visualOdom->getPoseEstimate(&last_image[0],&image[0],vodom_params);
+                pointFeatures->getPointMeasurements(&image[0],&measurements[0][0], &correspondences[0],&num_meas);
                 double phi = vodom_params[3];
                 double theta = vodom_params[4];
                 double psi = vodom_params[5];
@@ -448,7 +451,8 @@ int main(void)
                 t_12->data.db[1] = vodom_params[1];
                 t_12->data.db[2] = vodom_params[2];
                 generate_Reb(phi, theta, psi, R_12);
-                EKF->PredictKF(R_12,t_12);
+                //EKF->PredictKF(R_12,t_12);
+                EKF->PredictKF();
             }
             
             //cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
@@ -1284,9 +1288,9 @@ int main(void)
                         //cout << "TOTAL: " << elapsedTime << endl;
             gettimeofday(&start, NULL);
 
-            cvShowImage("Left",image_color[LEFT]);
-            cvShowImage("Right",image_color[RIGHT]);
-            cvWaitKey(5);
+            //cvShowImage("Left",image_color[LEFT]);
+            //cvShowImage("Right",image_color[RIGHT]);
+            //cvWaitKey(5);
         }
 
 	return 0;
