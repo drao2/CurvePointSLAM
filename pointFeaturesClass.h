@@ -23,9 +23,13 @@
 #define MAX_VODOM_FEATURES    200
 #define WINDOW_SIZE     21
 #define WINDOW_HALF     ((WINDOW_SIZE-1)/2)
+#define PATCH_SIZE      21
+#define PATCH_HALF     ((PATCH_SIZE-1)/2)
 #define EPI_THRESH      5
-#define DISP_THRESH      50
+#define DISP_THRESH_HI      50
+#define DISP_THRESH_LO      5
 #define SSD_THRESH      (2.0*WINDOW_SIZE*WINDOW_SIZE)//700.0
+#define DA_SSD_THRESH   SSD_THRESH/2.0
 #define LM_OPTS_SZ    	 5 /* max(4, 5) */
 #define LM_INFO_SZ    	 10
 #define LM_ERROR         -1
@@ -41,6 +45,7 @@
 #define HUGE_NUMBER     1000000.0
 #define HUGER_NUMBER    10000000.0
 
+#define LM_MOTION_THRESH   100.0     //The amount the landmark is allowed to drift in the image per frame
 
 class PointFeaturesClass
 {
@@ -50,7 +55,7 @@ public:
 
 	void getPointMeasurements(IplImage ** image, double * measurements, int * correspondence, int * num_meas);
         void getStereoPts(IplImage ** image, double * stereo_pts, int * num_features);
-        void determineDataAssoc(double * measurements, int num_features);
+        void determineDataAssoc(IplImage ** image, double * measurements, int * correspondences, int num_features);
 
 private:
         char optical_flow_found_feature[MAX_VODOM_FEATURES];
@@ -61,7 +66,15 @@ private:
 
         IplImage *eig_image, *temp_image, *pyramid1, *pyramid2;
         
-        std::vector<IplImage *> existing_landmark_patches;
+        struct landmarkStruct
+        {
+                IplImage * patches;
+                std::vector<double> last_meas;
+                int times_obs;
+                int frames_since_obs;
+        };
+        std::vector<struct landmarkStruct> existing_landmarks;
+        
 };
 
 

@@ -9,22 +9,19 @@ using namespace std;
 
 PointFeaturesClass::PointFeaturesClass()
 {
-          CvSize frame_size = cvSize(PIC_WIDTH,PIC_HEIGHT);
-
+        CvSize frame_size = cvSize(PIC_WIDTH,PIC_HEIGHT);
         eig_image = cvCreateImage( frame_size, IPL_DEPTH_32F, 1 );
         temp_image = cvCreateImage( frame_size, IPL_DEPTH_32F, 1 );
-        pyramid1 = cvCreateImage(cvSize(PIC_WIDTH+8,PIC_HEIGHT/3), IPL_DEPTH_8U, 1);
-        pyramid2 = cvCreateImage(cvSize(PIC_WIDTH+8,PIC_HEIGHT/3), IPL_DEPTH_8U, 1);
-        srand(0);
-	return;
+        //srand(0);
+	//return;
 }
 
 PointFeaturesClass::~PointFeaturesClass()
 {
         
-        optical_flow_window = cvSize(25,25);
-        optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .01 );
-	return;
+        //optical_flow_window = cvSize(25,25);
+        //optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .01 );
+	//return;
 }
 
 void PointFeaturesClass::getPointMeasurements(IplImage ** image, double * measurements, int * correspondence, int * num_meas)
@@ -33,10 +30,12 @@ void PointFeaturesClass::getPointMeasurements(IplImage ** image, double * measur
 timeval t_start, t_stop;
 timeval start, stop;
 float elapsedTime;
-
+        for (int i = 0; i < existing_landmarks.size(); i++)
+            existing_landmarks[i].frames_since_obs++;
 
         //Get stereo feature pairs, matched, in last and current images
         double stereo_pts[MAX_VODOM_FEATURES*4];
+        int correspondences[MAX_VODOM_FEATURES];
 
         //double last_stereo_pts[] = {170.0,100.0,150.0,100.0,170.0,120.0,150.0,120.0,170.0,140.0,150.0,140.0};
         //double current_stereo_pts[] = {170.0,100.0,150.0,100.0,170.0,120.0,150.0,120.0,170.0,140.0,150.0,140.0};
@@ -46,7 +45,7 @@ float elapsedTime;
         
         gettimeofday(&start, NULL);
         getStereoPts(image, stereo_pts, num_meas);
-        
+        determineDataAssoc(image, stereo_pts, correspondences, *num_meas);
         gettimeofday(&stop, NULL);
         
 	elapsedTime = (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
@@ -66,13 +65,13 @@ float elapsedTime;
     {
         //cvCircle(last_image[LEFT], cvPoint(last_stereo_pts[4*i],last_stereo_pts[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         cvCircle(image[LEFT], cvPoint(stereo_pts[4*i],stereo_pts[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
-        sprintf(tstring,"%d",i);
+        sprintf(tstring,"%d",correspondences[i]);
         //cvPutText(last_image[LEFT],tstring,cvPoint(last_stereo_pts[4*i],last_stereo_pts[4*i+1]-5),&font, CV_RGB(255,255,255));
         cvPutText(image[LEFT],tstring,cvPoint(stereo_pts[4*i],stereo_pts[4*i+1]-5),&font, CV_RGB(255,255,255));
         
         //cvCircle(last_image[RIGHT], cvPoint(last_stereo_pts[4*i+2],last_stereo_pts[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         cvCircle(image[RIGHT], cvPoint(stereo_pts[4*i+2],stereo_pts[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
-        sprintf(tstring,"%d",i);
+        sprintf(tstring,"%d",correspondences[i]);
         //cvPutText(last_image[RIGHT],tstring,cvPoint(last_stereo_pts[4*i+2],last_stereo_pts[4*i+3]-5),&font, CV_RGB(255,255,255));
         cvPutText(image[RIGHT],tstring,cvPoint(stereo_pts[4*i+2],stereo_pts[4*i+3]-5),&font, CV_RGB(255,255,255));
     }
@@ -86,13 +85,13 @@ void PointFeaturesClass::getStereoPts(IplImage ** image, double * stereo_pts, in
     //Find left image features
     CvPoint2D32f image_features_left[MAX_VODOM_FEATURES];
     int num_features_left = MAX_VODOM_FEATURES;
-    cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.01, 20, NULL, 3, 0, 0.04);
+    cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.01, 20, NULL, 13, 0, 0.04);
     
     
     //Find right image features
     CvPoint2D32f image_features_right[MAX_VODOM_FEATURES];
     int num_features_right = MAX_VODOM_FEATURES;
-    cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.01, 20, NULL, 3, 0, 0.04);
+    cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.01, 20, NULL, 13, 0, 0.04);
     
     //cout << "Original features: " << num_last_features_left << " " << num_last_features_right << endl;
     
@@ -147,8 +146,8 @@ void PointFeaturesClass::getStereoPts(IplImage ** image, double * stereo_pts, in
                 CvPoint left_feat = cvPoint(image_features_left[i].x,image_features_left[i].y);
                 CvPoint right_feat = cvPoint(image_features_right[j].x,image_features_right[j].y);
 
-                if (abs(right_feat.y-left_feat.y) > EPI_THRESH)
-                    cvmSet(score,i,j,100000.0);
+                if (abs(right_feat.y-left_feat.y) > EPI_THRESH || left_feat.x-right_feat.x >= DISP_THRESH_HI || left_feat.x-right_feat.x <= DISP_THRESH_LO)
+                    cvmSet(score,i,j,1000000.0);
                 else
                 {
                     cvSetImageROI(image[LEFT],cvRect(left_feat.x-WINDOW_HALF,left_feat.y-WINDOW_HALF,WINDOW_SIZE,WINDOW_SIZE));
@@ -175,7 +174,7 @@ void PointFeaturesClass::getStereoPts(IplImage ** image, double * stereo_pts, in
                 CvPoint left_feat = cvPoint(image_features_left[i].x,image_features_left[i].y);
                 CvPoint right_feat = cvPoint(image_features_right[j].x,image_features_right[j].y);
 
-                if (abs(right_feat.y-left_feat.y) <= EPI_THRESH && abs(left_feat.x-right_feat.x) <= DISP_THRESH)
+                if (abs(right_feat.y-left_feat.y) <= EPI_THRESH)
                 {
                     double ssd = cvmGet(score,i,j);
                     if(ssd < current_best_cost)
@@ -196,7 +195,7 @@ void PointFeaturesClass::getStereoPts(IplImage ** image, double * stereo_pts, in
                 CvPoint left_feat = cvPoint(image_features_left[i].x,image_features_left[i].y);
                 CvPoint right_feat = cvPoint(image_features_right[j].x,image_features_right[j].y);
 
-                if (abs(right_feat.y-left_feat.y) <= EPI_THRESH && abs(left_feat.x-right_feat.x) <= DISP_THRESH)
+                if (abs(right_feat.y-left_feat.y) <= EPI_THRESH)
                 {
                     double ssd = cvmGet(score,i,j);
                     if(ssd < current_best_cost)
@@ -240,7 +239,82 @@ void PointFeaturesClass::getStereoPts(IplImage ** image, double * stereo_pts, in
     }
 }
 
-void determineDataAssoc(double * measurements, int num_features)
+void PointFeaturesClass::determineDataAssoc(IplImage ** image, double * measurements, int * correspondences, int num_features)
 {
-    
+    std::vector<IplImage *> meas_patches;
+    const int num_landmarks = existing_landmarks.size();
+    bool landmarks_allocated[num_landmarks];
+    memset( landmarks_allocated, false, num_landmarks*sizeof(bool) );
+    for (int i = 0; i < num_features; i++)
+        cout << measurements[4*i] << " " << measurements[4*i+1] << " " << measurements[4*i+2] << " " << measurements[4*i+3] << endl;
+    //For each measurement:
+    for (int i = 0; i < num_features; i++)
+    {
+        //Assume it's a new landmark to begin with
+        correspondences[i] = -1;
+        
+        //Extract the patch using L and R image coords
+        IplImage * current_patch = cvCreateImage(cvSize(PATCH_SIZE,PATCH_SIZE),IPL_DEPTH_8U,1);
+        cvSetImageROI(image[LEFT],cvRect(measurements[4*i]-PATCH_HALF,measurements[4*i+1]-PATCH_HALF,PATCH_SIZE,PATCH_SIZE));
+        cvSetImageROI(image[RIGHT],cvRect(measurements[4*i+2]-PATCH_HALF,measurements[4*i+3]-PATCH_HALF,PATCH_SIZE,PATCH_SIZE));
+        cvAddWeighted(image[LEFT], 0.5, image[RIGHT], 0.5, 0.0, current_patch);
+        meas_patches.push_back(current_patch);
+        cvResetImageROI(image[LEFT]);
+        cvResetImageROI(image[RIGHT]);
+        
+        //Compare to existing landmarks (patches='codebook'?)
+        //Preference is given to more recent landmarks
+        double mindiff = DA_SSD_THRESH;
+        int num_landmarks = existing_landmarks.size();
+        cout << existing_landmarks.size() << endl;
+        for (int j = num_landmarks-1; j >= 0; j--)
+        {
+            //Reject those that have already been allocated
+            if (!landmarks_allocated[j])
+            {
+                //Reject any if too far away from last sighting (taking into account frames_since_obs)
+                double dist_to_lm = 0.5*pow( pow( existing_landmarks[j].last_meas[0]-measurements[4*i] , 2.0) + pow( existing_landmarks[j].last_meas[1]-measurements[4*i+1] , 2.0), 0.5) + 0.5*pow( pow( existing_landmarks[j].last_meas[2]-measurements[4*i+2] , 2.0) + pow( existing_landmarks[j].last_meas[3]-measurements[4*i+3] , 2.0), 0.5);
+                if(dist_to_lm < existing_landmarks[j].frames_since_obs*LM_MOTION_THRESH)
+                {
+                    //Pick best one, if below threshold
+                    double ssd = cvNorm(current_patch,existing_landmarks[j].patches);
+                    if (ssd < mindiff)
+                    {
+                        mindiff = ssd;
+                        correspondences[i] = j;
+                    }
+                }
+            }
+        }
+        if (correspondences[i] != -1)
+            landmarks_allocated[correspondences[i]] = true;
+    }
+    //For all measurements,
+    //If no matches, then add the patch and meas to existing_landmarks
+    //Otherwise, copy over the last measurement and update the stored patch
+    for (int i = 0; i < num_features; i++)
+    {
+        if (correspondences[i] == -1)
+        {
+            std::vector<double> meas;
+            for (int j = 0; j < 4; j++)
+                meas.push_back(measurements[4*i+j]);
+            landmarkStruct * newlm = new(landmarkStruct);
+            newlm->patches = meas_patches[i];
+            newlm->last_meas = meas;
+            newlm->times_obs = 1;
+            newlm->frames_since_obs = 0;
+            existing_landmarks.push_back(*newlm);
+        }
+        else
+        {
+            for (int j = 0; j < 4; j++)
+                existing_landmarks[correspondences[i]].last_meas[j] = measurements[4*i+j];
+            existing_landmarks[correspondences[i]].times_obs++;
+            existing_landmarks[correspondences[i]].frames_since_obs = 0;
+            double ratio1 = (double)(existing_landmarks[correspondences[i]].times_obs-1)/existing_landmarks[correspondences[i]].times_obs;
+            double ratio2 = 1.0/existing_landmarks[correspondences[i]].times_obs;
+            cvAddWeighted(existing_landmarks[correspondences[i]].patches, ratio1, meas_patches[i], ratio2, 0.0, existing_landmarks[correspondences[i]].patches);
+        }
+    }
 }
