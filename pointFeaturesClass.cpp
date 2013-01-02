@@ -24,7 +24,7 @@ PointFeaturesClass::~PointFeaturesClass()
 	//return;
 }
 
-void PointFeaturesClass::getPointMeasurements(IplImage ** image, double * measurements, int * correspondence, int * num_meas)
+void PointFeaturesClass::getPointMeasurements(IplImage ** image, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondences)
 { 
     
 timeval t_start, t_stop;
@@ -35,17 +35,17 @@ float elapsedTime;
 
         //Get stereo feature pairs, matched, in last and current images
         double stereo_pts[MAX_VODOM_FEATURES*4];
-        int correspondences[MAX_VODOM_FEATURES];
+        //int correspondences[MAX_VODOM_FEATURES];
 
         //double last_stereo_pts[] = {170.0,100.0,150.0,100.0,170.0,120.0,150.0,120.0,170.0,140.0,150.0,140.0};
         //double current_stereo_pts[] = {170.0,100.0,150.0,100.0,170.0,120.0,150.0,120.0,170.0,140.0,150.0,140.0};
         //double current_stereo_pts[] = {175.0,95.0,145.0,95.0,175.0,120.0,145.0,120.0,175.0,145.0,145.0,145.0};
         
-        
+        int num_total_meas = 0;
         
         gettimeofday(&start, NULL);
-        getStereoPts(image, stereo_pts, num_meas);
-        determineDataAssoc(image, stereo_pts, correspondences, *num_meas);
+        getStereoPts(image, stereo_pts, &num_total_meas);
+        determineDataAssoc(image, stereo_pts, num_total_meas, meas_new, num_new_meas, meas_existing, num_existing_meas, correspondences);
         gettimeofday(&stop, NULL);
         
 	elapsedTime = (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
@@ -61,19 +61,25 @@ float elapsedTime;
     CvFont font;
     cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX , 0.5f, 0.5f, 0, 1, 8);
     char tstring[5];
-    for (int i = 0; i < *num_meas; i++)
+    for (int i = 0; i < *num_existing_meas; i++)
     {
-        //cvCircle(last_image[LEFT], cvPoint(last_stereo_pts[4*i],last_stereo_pts[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
-        cvCircle(image[LEFT], cvPoint(stereo_pts[4*i],stereo_pts[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
+        cvCircle(image[LEFT], cvPoint(meas_existing[4*i],meas_existing[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         sprintf(tstring,"%d",correspondences[i]);
-        //cvPutText(last_image[LEFT],tstring,cvPoint(last_stereo_pts[4*i],last_stereo_pts[4*i+1]-5),&font, CV_RGB(255,255,255));
-        cvPutText(image[LEFT],tstring,cvPoint(stereo_pts[4*i],stereo_pts[4*i+1]-5),&font, CV_RGB(255,255,255));
+        cvPutText(image[LEFT],tstring,cvPoint(meas_existing[4*i],meas_existing[4*i+1]-5),&font, CV_RGB(255,255,255));
         
-        //cvCircle(last_image[RIGHT], cvPoint(last_stereo_pts[4*i+2],last_stereo_pts[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         cvCircle(image[RIGHT], cvPoint(stereo_pts[4*i+2],stereo_pts[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         sprintf(tstring,"%d",correspondences[i]);
-        //cvPutText(last_image[RIGHT],tstring,cvPoint(last_stereo_pts[4*i+2],last_stereo_pts[4*i+3]-5),&font, CV_RGB(255,255,255));
         cvPutText(image[RIGHT],tstring,cvPoint(stereo_pts[4*i+2],stereo_pts[4*i+3]-5),&font, CV_RGB(255,255,255));
+    }
+    for (int i = 0; i < *num_new_meas; i++)
+    {
+        cvCircle(image[LEFT], cvPoint(meas_new[4*i],meas_new[4*i+1]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
+        sprintf(tstring,"%d",-1);
+        cvPutText(image[LEFT],tstring,cvPoint(meas_new[4*i],meas_new[4*i+1]-5),&font, CV_RGB(0,0,0));
+        
+        cvCircle(image[RIGHT], cvPoint(meas_new[4*i+2],meas_new[4*i+3]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
+        sprintf(tstring,"%d",-1);
+        cvPutText(image[RIGHT],tstring,cvPoint(meas_new[4*i+2],meas_new[4*i+3]-5),&font, CV_RGB(0,0,0));
     }
     cvShowImage("Left",image[LEFT]);
     cvShowImage("Right",image[RIGHT]);
@@ -239,7 +245,7 @@ void PointFeaturesClass::getStereoPts(IplImage ** image, double * stereo_pts, in
     }
 }
 
-void PointFeaturesClass::determineDataAssoc(IplImage ** image, double * measurements, int * correspondences, int num_features)
+void PointFeaturesClass::determineDataAssoc(IplImage ** image, double * measurements, int num_features, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondences)
 {
     std::vector<IplImage *> meas_patches;
     const int num_landmarks = existing_landmarks.size();
@@ -247,11 +253,14 @@ void PointFeaturesClass::determineDataAssoc(IplImage ** image, double * measurem
     memset( landmarks_allocated, false, num_landmarks*sizeof(bool) );
     for (int i = 0; i < num_features; i++)
         cout << measurements[4*i] << " " << measurements[4*i+1] << " " << measurements[4*i+2] << " " << measurements[4*i+3] << endl;
+    
+    int num_ex = 0;
+    int num_new = 0;
     //For each measurement:
     for (int i = 0; i < num_features; i++)
     {
         //Assume it's a new landmark to begin with
-        correspondences[i] = -1;
+        int current_corr = -1;
         
         //Extract the patch using L and R image coords
         IplImage * current_patch = cvCreateImage(cvSize(PATCH_SIZE,PATCH_SIZE),IPL_DEPTH_8U,1);
@@ -281,21 +290,19 @@ void PointFeaturesClass::determineDataAssoc(IplImage ** image, double * measurem
                     if (ssd < mindiff)
                     {
                         mindiff = ssd;
-                        correspondences[i] = j;
+                        current_corr = j;
                     }
                 }
             }
         }
-        if (correspondences[i] != -1)
-            landmarks_allocated[correspondences[i]] = true;
-    }
-    //For all measurements,
-    //If no matches, then add the patch and meas to existing_landmarks
-    //Otherwise, copy over the last measurement and update the stored patch
-    for (int i = 0; i < num_features; i++)
-    {
-        if (correspondences[i] == -1)
+        
+        //If not matched, add to 'new' list, then add the patch and meas to existing_landmarks
+        if (current_corr == -1)
         {
+            for (int j = 0; j < 4; j++)
+                meas_new[4*num_new+j] = measurements[4*i+j];
+            num_new++;
+            
             std::vector<double> meas;
             for (int j = 0; j < 4; j++)
                 meas.push_back(measurements[4*i+j]);
@@ -306,15 +313,40 @@ void PointFeaturesClass::determineDataAssoc(IplImage ** image, double * measurem
             newlm->frames_since_obs = 0;
             existing_landmarks.push_back(*newlm);
         }
+        //Otherwise, add to 'existing' list and specify landmark number too, 
+        //copy over the last measurement and update the stored patch
         else
         {
+            correspondences[num_ex] = current_corr;
+            landmarks_allocated[current_corr] = true;
             for (int j = 0; j < 4; j++)
-                existing_landmarks[correspondences[i]].last_meas[j] = measurements[4*i+j];
-            existing_landmarks[correspondences[i]].times_obs++;
-            existing_landmarks[correspondences[i]].frames_since_obs = 0;
-            double ratio1 = (double)(existing_landmarks[correspondences[i]].times_obs-1)/existing_landmarks[correspondences[i]].times_obs;
-            double ratio2 = 1.0/existing_landmarks[correspondences[i]].times_obs;
-            cvAddWeighted(existing_landmarks[correspondences[i]].patches, ratio1, meas_patches[i], ratio2, 0.0, existing_landmarks[correspondences[i]].patches);
+                meas_existing[4*num_ex+j] = measurements[4*i+j];
+            num_ex++;
+            
+            for (int j = 0; j < 4; j++)
+                existing_landmarks[current_corr].last_meas[j] = measurements[4*i+j];
+            existing_landmarks[current_corr].times_obs++;
+            existing_landmarks[current_corr].frames_since_obs = 0;
+            double ratio1 = (double)(existing_landmarks[current_corr].times_obs-1)/existing_landmarks[current_corr].times_obs;
+            double ratio2 = 1.0/existing_landmarks[current_corr].times_obs;
+            cvAddWeighted(existing_landmarks[current_corr].patches, ratio1, meas_patches[i], ratio2, 0.0, existing_landmarks[current_corr].patches);
+        
         }
     }
+
+    //For all existing landmarks, copy over the last measurement and update the stored patch
+    for (int i = 0; i < num_ex; i++)
+    {
+        for (int j = 0; j < 4; j++)
+            existing_landmarks[correspondences[i]].last_meas[j] = measurements[4*i+j];
+        existing_landmarks[correspondences[i]].times_obs++;
+        existing_landmarks[correspondences[i]].frames_since_obs = 0;
+        double ratio1 = (double)(existing_landmarks[correspondences[i]].times_obs-1)/existing_landmarks[correspondences[i]].times_obs;
+        double ratio2 = 1.0/existing_landmarks[correspondences[i]].times_obs;
+        cvAddWeighted(existing_landmarks[correspondences[i]].patches, ratio1, meas_patches[i], ratio2, 0.0, existing_landmarks[correspondences[i]].patches);
+        
+    }
+    
+    *num_existing_meas = num_ex;
+    *num_new_meas = num_new;
 }

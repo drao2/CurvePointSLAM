@@ -61,7 +61,8 @@ public:
 	void PredictKF();
 	void PredictKF(CvMat * R_predict, CvMat * T_predict);
 	void AddNewCurve(CvMat * measurement, CvMat * A);
-        void UpdateNCurves(CvMat * z, int n, std::vector<CvMat *> * A, vector<int> * curve_num);
+	void AddNewPoints(double * measurements, int n_pts);
+        void UpdateNCurvesAndPoints(CvMat * z, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts);
         void UpdateOOP(CvMat * z);
         bool CheckValidMeasurement(double phi, double theta, double z, int frames_since_good_measurement);
 	void GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvMat * A, CvMat * B, int num_curve1, int num_curve2);

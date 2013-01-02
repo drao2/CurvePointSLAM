@@ -438,12 +438,14 @@ int main(void)
                 //if (!first_time)
                     //EKF->PredictKF();
             }
-            int num_meas = 3;
-            double measurements[50][4];
+            int n_pts_existing = 3;
+            int n_pts_new = 3;
+            double point_meas_existing[50][4];
+            double point_meas_new[50][4];
             int correspondences[50];
             if(!first_time)
             {
-                pointFeatures->getPointMeasurements(&image[0],&measurements[0][0], &correspondences[0],&num_meas);
+                pointFeatures->getPointMeasurements(&image[0],&point_meas_new[0][0],&n_pts_new,&point_meas_existing[0][0],&n_pts_existing, &correspondences[0]);
                 double phi = vodom_params[3];
                 double theta = vodom_params[4];
                 double psi = vodom_params[5];
@@ -1219,7 +1221,7 @@ int main(void)
                         z->data.db[num_curves_to_update*8] = height;
                         z->data.db[num_curves_to_update*8+1] = phi;
                         z->data.db[num_curves_to_update*8+2] = theta;
-                        EKF->UpdateNCurves(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update));
+                        EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0][0],&correspondences[0],n_pts_existing);
                     }
 
                 }

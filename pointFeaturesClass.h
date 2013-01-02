@@ -53,10 +53,10 @@ public:
 	PointFeaturesClass();
 	~PointFeaturesClass();
 
-	void getPointMeasurements(IplImage ** image, double * measurements, int * correspondence, int * num_meas);
+	void getPointMeasurements(IplImage ** image, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
         void getStereoPts(IplImage ** image, double * stereo_pts, int * num_features);
-        void determineDataAssoc(IplImage ** image, double * measurements, int * correspondences, int num_features);
-
+        void determineDataAssoc(IplImage ** image, double * measurements, int num_features, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
+        //determinedataAssoc takes ALL measurements, finds associations and uses it to split into 'new' and 'existing'
 private:
         char optical_flow_found_feature[MAX_VODOM_FEATURES];
         float optical_flow_feature_error[MAX_VODOM_FEATURES];

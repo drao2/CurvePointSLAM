@@ -665,7 +665,12 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 
 }
 
-void KalmanFilter::UpdateNCurves(CvMat * measurement, int n, vector<CvMat *> * A, vector<int> * curve_num)
+void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
+{
+    
+}
+
+void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)
 {
 	gettimeofday(&start, NULL);
 
