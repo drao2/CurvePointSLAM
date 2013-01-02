@@ -438,14 +438,14 @@ int main(void)
                 //if (!first_time)
                     //EKF->PredictKF();
             }
-            int n_pts_existing = 3;
-            int n_pts_new = 3;
+            int n_pts_existing = 0;
+            int n_pts_new = 0;
             double point_meas_existing[50][4];
             double point_meas_new[50][4];
             int correspondences[50];
             if(!first_time)
             {
-                pointFeatures->getPointMeasurements(&image[0],&point_meas_new[0][0],&n_pts_new,&point_meas_existing[0][0],&n_pts_existing, &correspondences[0]);
+                pointFeatures->getPointMeasurements(&last_image[0],&image[0],&point_meas_new[0][0],&n_pts_new,&point_meas_existing[0][0],&n_pts_existing, &correspondences[0]);
                 double phi = vodom_params[3];
                 double theta = vodom_params[4];
                 double psi = vodom_params[5];

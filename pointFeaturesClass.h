@@ -46,6 +46,8 @@
 #define HUGER_NUMBER    10000000.0
 
 #define LM_MOTION_THRESH   100.0     //The amount the landmark is allowed to drift in the image per frame
+#define LM_PROXIMITY_THRESH     20.0    //For new landmarks, we reject them if they are this close to an existing one
+#define NUM_CURRENT_LANDMARKS   10
 
 class PointFeaturesClass
 {
@@ -53,13 +55,18 @@ public:
 	PointFeaturesClass();
 	~PointFeaturesClass();
 
-	void getPointMeasurements(IplImage ** image, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
+	void getPointMeasurements(IplImage ** last_image, IplImage ** image, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
         void getStereoPts(IplImage ** image, double * stereo_pts, int * num_features);
         void determineDataAssoc(IplImage ** image, double * measurements, int num_features, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
         //determinedataAssoc takes ALL measurements, finds associations and uses it to split into 'new' and 'existing'
+        
+        void trackExistingLandmarks(IplImage ** last_image, IplImage ** image, double * meas_existing, int *num_existing_meas);
+        void findNewLandmarks(IplImage ** image, double * meas_new, int *num_new_meas);
 private:
-        char optical_flow_found_feature[MAX_VODOM_FEATURES];
-        float optical_flow_feature_error[MAX_VODOM_FEATURES];
+        char optical_flow_found_feature_left[MAX_VODOM_FEATURES];
+        float optical_flow_feature_error_left[MAX_VODOM_FEATURES];
+        char optical_flow_found_feature_right[MAX_VODOM_FEATURES];
+        float optical_flow_feature_error_right[MAX_VODOM_FEATURES];
         CvSize optical_flow_window;
         CvTermCriteria optical_flow_termination_criteria;
         
@@ -74,6 +81,15 @@ private:
                 int frames_since_obs;
         };
         std::vector<struct landmarkStruct> existing_landmarks;
+        
+        CvPoint2D32f pts_curr[2][NUM_CURRENT_LANDMARKS];
+        int matches_curr[NUM_CURRENT_LANDMARKS];
+        int num_pts_curr;
+        CvPoint2D32f pts_last[2][NUM_CURRENT_LANDMARKS];
+        int matches_last[NUM_CURRENT_LANDMARKS];
+        int num_pts_last;
+        
+        CvPoint2D32f temp_pts_curr[2][NUM_CURRENT_LANDMARKS];
         
 };
 
