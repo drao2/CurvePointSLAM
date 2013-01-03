@@ -161,6 +161,7 @@ public:
 
 
         int num_curves;
+        int num_points;
         
 
 	timeval start, stop;
