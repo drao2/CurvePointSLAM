@@ -468,7 +468,6 @@ void KalmanFilter::AddFirstStates(CvMat * measurement)
 }
 
 
-
 void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 {
     
@@ -667,7 +666,170 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 
 void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 {
-    
+    	gettimeofday(&start, NULL);
+
+        //Resize P and x, and copy over existing
+        CvMat * Pcopy = cvCloneMat(P);
+        CvMat * xcopy = cvCloneMat(x);
+        cvReleaseMat(&P);
+        cvReleaseMat(&x);
+        P = newMatrix(P->rows+n_pts*3,P->cols+n_pts*3,CV_64FC1);
+        x = newMatrix(x->rows+n_pts*3,1,CV_64FC1);
+
+        for (int i = 0; i < Pcopy->rows; i++)
+        {
+            for (int j = 0; j < Pcopy->cols; j++)
+            {
+                cvmSet(P,i,j,cvmGet(Pcopy,i,j));
+            }
+            x->data.db[i] = xcopy->data.db[i];
+        }
+
+        cvReleaseMat(&xcopy);
+        cvReleaseMat(&Pcopy);
+
+
+
+        cvSetZero(Pcurrent8);
+        cvSetZero(xcurrent8);
+        cvSetZero(H);
+        cvSetZero(Hinv);
+
+
+
+        
+        for (int i = 0; i < 4; i++)
+        {
+            cvmSet( zx, i, 0, z->data.db[i]);
+            cvmSet( zy, i, 0, z->data.db[i+4]);
+
+        }
+
+        cvInvert(A,Ainv,CV_SVD);
+        cvMatMul(Ainv,zx,Ainvzx);
+        cvMatMul(Ainv,zy,Ainvzy);
+        
+        //Determine new H and add new curve
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                cvmSet( H, i, j, A->data.db[4*i+j]);
+                cvmSet( H, i+4, j+4, A->data.db[4*i+j]);
+                cvmSet( Hinv, i, j, Ainv->data.db[4*i+j]);
+                cvmSet( Hinv, i+4, j+4, Ainv->data.db[4*i+j]);
+            }
+
+        }
+        cvMatMul(Rot,z,temp81);
+        for (int i = 0; i < 4; i++)
+            temp81->data.db[i] += Tx;
+        for (int i = 4; i < 8; i++)
+            temp81->data.db[i] += Ty;
+        cvMatMul(Hinv,temp81,xcurrent8);
+
+
+
+        CvMat * PN1N1 = newMatrix(8,8,CV_64FC1);
+        CvMat * PN1r = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
+        CvMat * PN1i = newMatrix(8,(num_curves-1)*8,CV_64FC1);
+        CvMat * Pri = newMatrix(ROBOT_STATE_SIZE,(num_curves-1)*8,CV_64FC1);
+        CvMat * ones = newMatrix(4,1,CV_64FC1);
+        CvMat * temp58 = newMatrix(ROBOT_STATE_SIZE,8,CV_64FC1);
+        CvMat * temp5 = newMatrix(ROBOT_STATE_SIZE,ROBOT_STATE_SIZE,CV_64FC1);
+        ones->data.db[0] = 1.0;
+        ones->data.db[1] = 1.0;
+        ones->data.db[2] = 1.0;
+        ones->data.db[3] = 1.0;
+        cvMatMul(Ainv,ones,temp41);
+
+
+
+        //Figure out covariances Gz and Gx
+        cvMatMul(Hinv,Rot,Gz);
+
+        cvMatMul(Rotderiv,z,temp81);
+        cvMatMul(Hinv,temp81,temp81);
+        cvSetZero(Gx);
+
+
+        for (int i = 0; i < 4; i++)
+        {
+            cvmSet(Gx,i,0, temp41->data.db[i]);
+            cvmSet(Gx,i+4,0, 0.0);
+            cvmSet(Gx,i,1, 0.0);
+            cvmSet(Gx,i+4,1, temp41->data.db[i]);
+            cvmSet(Gx,i,5, temp81->data.db[i]);
+            cvmSet(Gx,i+4,5, temp81->data.db[i+4]);
+        }
+
+
+
+        //Find Prr and Pri, then calculate the covariances
+        for (int i = 0; i < ROBOT_STATE_SIZE; i++)
+        {
+            for (int j = 0; j < ROBOT_STATE_SIZE; j++)
+            {
+                cvmSet(Prr,i,j,cvmGet(P,i,j));
+            }
+            for (int j = 0; j < (num_curves-1)*8; j++)
+            {
+                cvmSet(Pri,i,j,cvmGet(P,i,j+ROBOT_STATE_SIZE));
+            }
+        }
+
+
+        cvTranspose(Gx,temp58);
+        cvMatMul(Prr,temp58,temp58);
+        cvMatMul(Gx,temp58,Pcurrent8);
+
+        cvTranspose(Gz,temp8);
+        cvMatMul(R1,temp8,temp8);
+        cvMatMul(Gz,temp8,temp8);
+        cvAdd(Pcurrent8,temp8,PN1N1);
+
+
+        cvMatMul(Gx,Pri,PN1i);
+
+        cvTranspose(Prr,temp5);
+        cvMatMul(Gx,temp5,PN1r);
+
+
+        //Expand array ROI and add new bits
+
+        for (int i = 0; i < 8; i++)
+        {
+            for (int j = 0; j < 8; j++)
+            {
+                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+(num_curves-1)*8+ROBOT_STATE_SIZE, PN1N1->data.db[8*i+j] );
+            }
+            for (int j = 0; j < (num_curves-1)*8; j++)
+            {
+                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
+                cvmSet( P, j+ROBOT_STATE_SIZE, i+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
+            }
+            x->data.db[(num_curves-1)*8+i+ROBOT_STATE_SIZE] = xcurrent8->data.db[i];
+
+            for(int j = 0; j < ROBOT_STATE_SIZE; j++)
+            {
+                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j, cvmGet(PN1r,i,j) );
+                cvmSet( P, j, i+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1r,i,j) );
+            }
+        }
+
+        cvReleaseMat(&Pri);
+        cvReleaseMat(&PN1i);
+        cvReleaseMat(&Pcopy);
+        cvReleaseMat(&xcopy);
+        cvReleaseMat(&PN1N1);
+        cvReleaseMat(&PN1r);
+        cvReleaseMat(&ones);
+        cvReleaseMat(&temp58);
+        cvReleaseMat(&temp5);
+
+	gettimeofday(&stop, NULL);
+	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
+		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
 
 void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)

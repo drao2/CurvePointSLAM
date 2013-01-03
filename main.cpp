@@ -440,12 +440,12 @@ int main(void)
             }
             int n_pts_existing = 0;
             int n_pts_new = 0;
-            double point_meas_existing[50][4];
-            double point_meas_new[50][4];
+            double point_meas_existing[200];
+            double point_meas_new[200];
             int correspondences[50];
             if(!first_time)
             {
-                pointFeatures->getPointMeasurements(&last_image[0],&image[0],&point_meas_new[0][0],&n_pts_new,&point_meas_existing[0][0],&n_pts_existing, &correspondences[0]);
+                pointFeatures->getPointMeasurements(&last_image[0],&image[0],&point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
                 cout << n_pts_existing << " " << n_pts_new << endl;
                 double phi = vodom_params[3];
                 double theta = vodom_params[4];
@@ -457,6 +457,9 @@ int main(void)
                 //EKF->PredictKF(R_12,t_12);
                 EKF->PredictKF();
             }
+            
+            //Add any new point measurements we've made
+            EKF->AddNewPoints(&point_meas_new[0], n_pts_new);
             
             //cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
             //cvRemap(image_raw[1], image_color[1], mx[1], my[1]);
@@ -1222,7 +1225,7 @@ int main(void)
                         z->data.db[num_curves_to_update*8] = height;
                         z->data.db[num_curves_to_update*8+1] = phi;
                         z->data.db[num_curves_to_update*8+2] = theta;
-                        EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0][0],&correspondences[0],n_pts_existing);
+                        EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     }
 
                 }
