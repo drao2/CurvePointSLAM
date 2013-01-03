@@ -30,7 +30,8 @@
 #define Z_MEAS_COV 0.4
 */
 
-#define MEAS_COV 1.0 //Innovation
+#define MEAS_COV 1.0 //Innovation for curve cp meas (in m)
+#define PT_MEAS_COV 10.0 //Innovation for pt meas (in pixels)
 
 #define VX_COV 0.05
 #define VY_COV 0.05
@@ -73,6 +74,7 @@ public:
         CvMat * getOOPState();
 	float getTime();
 	void resetTime();
+        void get_Reb_derivs(double phi, double theta, double psi, CvMat * R_eb_phi, CvMat * R_eb_theta, CvMat * R_eb_psi);
         void printMatrix(CvMat *);
 	CvMat * A1;
 	CvMat * A2;
@@ -93,6 +95,7 @@ public:
 	CvMat * K1;
 	CvMat * delP1;
 	CvMat * R1;
+	CvMat * R_pts;
 	CvMat * S1;
 	CvMat * z1;
 	CvMat * z_hat1;
