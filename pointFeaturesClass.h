@@ -60,7 +60,7 @@ public:
         void determineDataAssoc(IplImage ** image, double * measurements, int num_features, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
         //determinedataAssoc takes ALL measurements, finds associations and uses it to split into 'new' and 'existing'
         
-        void trackExistingLandmarks(IplImage ** last_image, IplImage ** image, double * meas_existing, int *num_existing_meas);
+        void trackExistingLandmarks(IplImage ** last_image, IplImage ** image, double * meas_existing, int *num_existing_meas, int * correspondence);
         void findNewLandmarks(IplImage ** image, double * meas_new, int *num_new_meas);
 private:
         char optical_flow_found_feature_left[MAX_VODOM_FEATURES];
@@ -91,6 +91,7 @@ private:
         
         CvPoint2D32f temp_pts_curr[2][NUM_CURRENT_LANDMARKS];
         
+        int num_landmarks_total;
 };
 
 
