@@ -70,7 +70,7 @@ void DisplayClass::convert3Dtogroundmap(CvPoint3D32f * world_point, CvPoint * ma
 
 
 //Generate landmark map at each timestep
-void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limits, CvMat * z)
+void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limits, CvMat * z, int num_curves, int num_pts)
 {
 	gettimeofday(&start, NULL);
         
@@ -107,8 +107,6 @@ void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limit
 
         
         //Generate state map curves
-        int num_curves = (cvGetSize(state).height-ROBOT_STATE_SIZE)/8;
-
         for (int k = 0; k < num_curves; k++)
         {
 
@@ -176,70 +174,6 @@ void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limit
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
 
-
-void DisplayClass::display_images(CvMat * features_left, CvMat * features_right)
-{
-	gettimeofday(&start, NULL);
-
-
-	CvFont font;
-	cvInitFont(&font,CV_FONT_HERSHEY_SIMPLEX,0.5,0.5,0,1,8);
-
-#ifndef USE_SIMULATION
-
-        //cvSetZero(image_color_left);
-        //cvSetZero(image_color_right);
-
-
-    // Plot features on images
-
-    char num_string[10];
-
-    int num_feat = features_right->rows/2;
-
-    //cout << "RIGHT FEATURES\n";
-    for( int i = 0; i < num_feat; i++)
-    {
-            //sprintf(num_string,"%d",i);
-            CvPoint right = cvPoint(features_right->data.db[2*i], features_right->data.db[2*i+1]);
-            cvCircle(image_color_right,right,1,CV_RGB(255,255,255));
-    }
-
-    num_feat = features_left->rows/2;
-
-    //cout << "LEFT FEATURES\n";
-    for( int i = 0; i < num_feat; i++)
-    {
-            //sprintf(num_string,"%d",i);
-            CvPoint left = cvPoint(features_left->data.db[2*i], features_left->data.db[2*i+1]);
-            cvCircle(image_color_left,left,1,CV_RGB(255,255,255));
-    }
-
-
-// Show output
-    cvShowImage("Left",image_color_left);
-
-    cvShowImage("Right",image_color_right);
-
-    cvWaitKey(5);
-
-
-#endif
-
-#ifdef OUTPUT_VIDEO
-    cvSetImageROI(output_image, cvRect(0,0,PIC_WIDTH,PIC_HEIGHT));
-    cvCvtColor(image_color_left,output_image,CV_GRAY2RGB);
-    cvSetImageROI(output_image, cvRect(PIC_WIDTH,0,PIC_WIDTH,PIC_HEIGHT));
-    cvCvtColor(image_color_right,output_image,CV_GRAY2RGB);
-    cvResetImageROI(output_image);
-#endif
-    //cvWriteFrame(video_out,output_image);
-
-	gettimeofday(&stop, NULL);
-	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
-		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
-
-}
 
 void DisplayClass::display_images(IplImage* image_left, IplImage* image_right, CvMat ** featuresLeftImage, CvMat ** featuresRightImage, double * p_left, double * p_right, IplImage * image_out_left, IplImage * image_out_right)
 {
