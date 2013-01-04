@@ -1018,7 +1018,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvAdd(S,R,S);
 
                         cout << "5b\n";
-        cvInvert(S,tempn,CV_SVD);
+        cvInvert(S,tempn,CV_LU);
                         cout << "5c\n";
         cvMatMul(Ht,tempn,K);
         cvMatMul(P,K,K);
