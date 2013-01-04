@@ -880,6 +880,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 
 void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)
 {
+                        cout << "1\n";
 	gettimeofday(&start, NULL);
 
         cvSetZero(Rot);
@@ -911,6 +912,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             R->data.db[(n*8+4)*(n*8+1)] = pow(PHI_MEAS_COV,2.0);
             R->data.db[(n*8+4)*(n*8+2)] = pow(THETA_MEAS_COV,2.0);
             
+                        cout << "2\n";
 
         cvSetZero(temp8);
         cvSetZero(temp81);
@@ -940,6 +942,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         }
 
         
+                        cout << "3\n";
         //Determine H
         for (int k = 0; k < n; k++)
         {
@@ -988,7 +991,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             cvSetZero(temp81);
         }
                         
-                        
+             
+                        cout << "4\n";           
         cvmSet( H, n*8, 2, 1.0);
         cvmSet( H, 1+n*8, 3, 1.0);
         cvmSet( H, 2+n*8, 4, 1.0);
@@ -1003,6 +1007,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         }
         
 
+                        cout << "5\n";
 
         cvTranspose(H,Ht);
         
@@ -1012,10 +1017,13 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvMatMul(H,temp,S);
         cvAdd(S,R,S);
 
+                        cout << "5b\n";
         cvInvert(S,tempn,CV_SVD);
+                        cout << "5c\n";
         cvMatMul(Ht,tempn,K);
         cvMatMul(P,K,K);
 
+                        cout << "6\n";
         //Update state
         for (int i = 0; i < n; i++)
         {
@@ -1027,6 +1035,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         tempn1->data.db[n*8+1] = x->data.db[3];
         tempn1->data.db[n*8+2] = x->data.db[4];
 
+                        cout << "7\n";
 
         //cout << "Measurement:\n";
         //printMatrix(z);
@@ -1059,6 +1068,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         while(x->data.db[5] < -PI)
             x->data.db[5] += 2*PI;
 
+                        cout << "8\n";
         //Update covariance matrix P
             cvTranspose(K,Kt);
         cvMatMul(S,Kt,Kt);
@@ -1073,6 +1083,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvAddWeighted(P, 0.5, Pt, 0.5, 0.0, P);
         cvReleaseMat(&Pt);
 
+                        cout << "9\n";
         cvReleaseMat(&H);
         cvReleaseMat(&Ht);
         cvReleaseMat(&R);

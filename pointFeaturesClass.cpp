@@ -100,7 +100,7 @@ float elapsedTime;
     }
     cvShowImage("Left",image[LEFT]);
     cvShowImage("Right",image[RIGHT]);
-    cvWaitKey(0);
+    cvWaitKey(10);
 }
 
 
