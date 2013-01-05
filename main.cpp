@@ -446,7 +446,7 @@ int main(void)
             if(!first_time)
             {
                 pointFeatures->getPointMeasurements(&last_image[0],&image[0],&point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
-                cout << n_pts_existing << " " << n_pts_new << endl;
+                //cout << n_pts_existing << " " << n_pts_new << endl;
                 double phi = vodom_params[3];
                 double theta = vodom_params[4];
                 double psi = vodom_params[5];
@@ -1295,7 +1295,7 @@ int main(void)
 
             //cvShowImage("Left",image_color[LEFT]);
             //cvShowImage("Right",image_color[RIGHT]);
-            //cvWaitKey(5);
+            //cvWaitKey(0);
         }
 
 	return 0;
