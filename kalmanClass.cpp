@@ -550,15 +550,15 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         cvShowImage("Pold2",P);
         if(num_points)
         {
-            //The existing point landmarks need to be moved down (3 blocks, Pri,Pir, Pii):
-            for (int i = 0; i < ROBOT_STATE_SIZE; i++)
+            //The existing point landmarks need to be moved down (3 blocks, Pri,Pir, Pii), note that r refers to robot and curve landmarks!
+            for (int i = 0; i < (num_curves-1)*8+ROBOT_STATE_SIZE; i++)
             {
                 for (int j = (num_curves-1)*8+ROBOT_STATE_SIZE; j < existing_size; j++)
                     cvmSet(P,i,j+8,cvmGet(Pcopy,i,j));
             }
             
         cvShowImage("Pold3",P);
-            for (int j = 0; j < ROBOT_STATE_SIZE; j++)
+            for (int j = 0; j < (num_curves-1)*8+ROBOT_STATE_SIZE; j++)
             {
                 for (int i = (num_curves-1)*8+ROBOT_STATE_SIZE; i < existing_size; i++)
                     cvmSet(P,i+8,j,cvmGet(Pcopy,i,j));
