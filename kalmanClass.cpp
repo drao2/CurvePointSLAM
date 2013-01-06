@@ -476,9 +476,6 @@ void KalmanFilter::AddFirstStates(CvMat * measurement)
 
 void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 {
-    
-        cout << "ADDING NEW CURVE\n";
-        cvShowImage("Pold",P);
 	gettimeofday(&start, NULL);
         
         double Tx = x->data.db[0];
@@ -526,7 +523,6 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         P = newMatrix(existing_size+8,existing_size+8,CV_64FC1);
         x = newMatrix(existing_size+8,1,CV_64FC1);
         
-        cvShowImage("Pold1",P);
         //Find Prr and Pri first
         for (int i = 0; i < ROBOT_STATE_SIZE; i++)
         {
@@ -547,7 +543,6 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
             x->data.db[i] = xcopy->data.db[i];
         }
         
-        cvShowImage("Pold2",P);
         if(num_points)
         {
             //The existing point landmarks need to be moved down (3 blocks, Pri,Pir, Pii), note that r refers to robot and curve landmarks!
@@ -557,21 +552,18 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
                     cvmSet(P,i,j+8,cvmGet(Pcopy,i,j));
             }
             
-        cvShowImage("Pold3",P);
             for (int j = 0; j < (num_curves-1)*8+ROBOT_STATE_SIZE; j++)
             {
                 for (int i = (num_curves-1)*8+ROBOT_STATE_SIZE; i < existing_size; i++)
                     cvmSet(P,i+8,j,cvmGet(Pcopy,i,j));
             }
         
-        cvShowImage("Pold4",P);
             for (int i = (num_curves-1)*8+ROBOT_STATE_SIZE; i < existing_size; i++)
             {
                 for (int j = (num_curves-1)*8+ROBOT_STATE_SIZE; j < existing_size; j++)
                     cvmSet(P,i+8,j+8,cvmGet(Pcopy,i,j));
             }
         
-        cvShowImage("Pold5",P);
         }
 
         cvReleaseMat(&xcopy);
@@ -666,21 +658,18 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
                 cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+(num_curves-1)*8+ROBOT_STATE_SIZE, PN1N1->data.db[8*i+j] );
             }
             
-                cvShowImage("Pnew1",P);
             for (int j = 0; j < (num_curves-1)*8; j++)
             {
                 cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
                 cvmSet( P, j+ROBOT_STATE_SIZE, i+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
             }
             x->data.db[(num_curves-1)*8+i+ROBOT_STATE_SIZE] = xcurrent8->data.db[i];
-                cvShowImage("Pnew2",P);
 
             for(int j = 0; j < ROBOT_STATE_SIZE; j++)
             {
                 cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j, cvmGet(PN1r,i,j) );
                 cvmSet( P, j, i+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1r,i,j) );
             }
-                cvShowImage("Pnew3",P);
         }
         
         if (num_points) //Only worry about the point terms if num_points != 0
@@ -703,8 +692,6 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
                 }
             }
         }
-        cvShowImage("Pnew",P);
-        cvWaitKey(0);
 
         cvReleaseMat(&Pri);
         cvReleaseMat(&PN1i);
@@ -727,15 +714,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 {
     gettimeofday(&start, NULL);
     if (n_pts)
-    {
-        
-        //cout << "x: " << endl;
-        //printMatrix(x);
-        //cout << "P: " << endl;
-        //printMatrix(P);
-        //cout << "ADDING NEW POINTS\n";
-        //cvShowImage("Pold",P);
-        
+    {        
         double phi = x->data.db[3];
         double theta = x->data.db[4];
         double psi = x->data.db[5];
@@ -896,15 +875,6 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
         cvReleaseMat(&GzT);
         cvReleaseMat(&temp33);
         cvReleaseMat(&temp31);
-        
-        
-        //cout << "x_new: " << endl;
-        //printMatrix(x);
-        //cout << "P_new: " << endl;
-        //printMatrix(P);
-        
-        //cvShowImage("Pnew",P);
-        //cvWaitKey(0);
     }
 	gettimeofday(&stop, NULL);
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
@@ -914,37 +884,48 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)
 {
 	gettimeofday(&start, NULL);
-        //cout << "UPDATING LANDMARKS\n";
-        //cvShowImage("Pold",P);
+        
+        int curve_meas_size = n*8+3;
+        int pt_meas_size = n_pts*4;
+        int meas_size = pt_meas_size+curve_meas_size;
+        int existing_size = P->rows;
         
         cvSetZero(Rot);
 
-        CvMat * z = newMatrix(n*8+3, 1, CV_64FC1);
-        for (int i = 0; i < z->rows; i++)
+        CvMat * z = newMatrix(meas_size, 1, CV_64FC1);
+        for (int i = 0; i < curve_meas_size; i++)
             z->data.db[i] = measurement->data.db[i];
+        for (int i = 0; i < pt_meas_size; i++)
+            z->data.db[i+curve_meas_size] = point_meas[i];
+        
+        printMatrix(z);
 
-        int existing_size = P->rows;
-        CvMat * H = newMatrix(n*8+3, existing_size, CV_64FC1);
-        CvMat * Ht = newMatrix(existing_size, n*8+3, CV_64FC1);
-        CvMat * K = newMatrix(existing_size, n*8+3, CV_64FC1);
-        CvMat * Kt = newMatrix(n*8+3, existing_size, CV_64FC1);
-        CvMat * temp = newMatrix(existing_size, n*8+3, CV_64FC1);
+        CvMat * H = newMatrix(meas_size, existing_size, CV_64FC1);
+        CvMat * Ht = newMatrix(existing_size, meas_size, CV_64FC1);
+        CvMat * K = newMatrix(existing_size, meas_size, CV_64FC1);
+        CvMat * Kt = newMatrix(meas_size, existing_size, CV_64FC1);
+        CvMat * temp = newMatrix(existing_size, meas_size, CV_64FC1);
         CvMat * delx = newMatrix(existing_size, 1, CV_64FC1);
-        CvMat * tempn = newMatrix(n*8+3, n*8+3, CV_64FC1);
-        CvMat * tempn1 = newMatrix(n*8+3, 1, CV_64FC1);
+        CvMat * tempn = newMatrix(meas_size, meas_size, CV_64FC1);
+        CvMat * tempn1 = newMatrix(meas_size, 1, CV_64FC1);
         CvMat * tempn3 = newMatrix(existing_size, existing_size, CV_64FC1);
         CvMat * delP = newMatrix(existing_size, existing_size, CV_64FC1);
-	CvMat * R = newMatrix(n*8+3,n*8+3,CV_64FC1);
-	CvMat * S = newMatrix(n*8+3,n*8+3,CV_64FC1);
+	CvMat * R = newMatrix(meas_size,meas_size,CV_64FC1);
+	CvMat * S = newMatrix(meas_size,meas_size,CV_64FC1);
         CvMat * Rotderiv = newMatrix(8,8,CV_64FC1);
         
-        for (int i = 0; i < z->rows; i++)
+        //Set meas noise
+        for (int i = 0; i < curve_meas_size; i++)
         {
-            R->data.db[(n*8+4)*i] = MEAS_COV;
+            R->data.db[(meas_size+1)*i] = MEAS_COV;
         }
-            R->data.db[(n*8+4)*(n*8)] = pow(Z_MEAS_COV,2.0);
-            R->data.db[(n*8+4)*(n*8+1)] = pow(PHI_MEAS_COV,2.0);
-            R->data.db[(n*8+4)*(n*8+2)] = pow(THETA_MEAS_COV,2.0);
+            R->data.db[(meas_size+1)*(n*8)] = pow(Z_MEAS_COV,2.0);
+            R->data.db[(meas_size+1)*(n*8+1)] = pow(PHI_MEAS_COV,2.0);
+            R->data.db[(meas_size+1)*(n*8+2)] = pow(THETA_MEAS_COV,2.0);
+        for (int i = curve_meas_size; i < meas_size; i++)
+        {
+            R->data.db[(meas_size+1)*i] = pow(PT_MEAS_COV,2.0);
+        }
 
         cvSetZero(temp8);
         cvSetZero(temp81);
@@ -957,6 +938,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 
         double Tx = x->data.db[0];
         double Ty = x->data.db[1];
+        double Tz = x->data.db[2];
+        double phi = x->data.db[3];
+        double theta = x->data.db[4];
         double psi = x->data.db[5];
 
         //Determine rot matrix
@@ -974,6 +958,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         }
 
         //Determine H
+        
+        //First the curve measurement terms
         for (int k = 0; k < n; k++)
         {
             cvSetZero(temp8);
@@ -1020,19 +1006,87 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             cvSetZero(temp8);
             cvSetZero(temp81);
         }
-      
+        
+        //The direct measurement of phi, theta, z
         cvmSet( H, n*8, 2, 1.0);
         cvmSet( H, 1+n*8, 3, 1.0);
         cvmSet( H, 2+n*8, 4, 1.0);
         
-        for (int i = 0; i < H->rows; i++)
+        if (n_pts)
         {
-            for (int j = 0; j < 6; j++)
+            CvMat * dzdxb = newMatrix(4,3,CV_64FC1);
+            CvMat * temp43 = newMatrix(4,3,CV_64FC1);
+            CvMat * temp41 = newMatrix(4,1,CV_64FC1);
+            CvMat * temp31 = newMatrix(3,1,CV_64FC1);
+            CvMat * xe = newMatrix(3,1,CV_64FC1);
+            CvMat * xb = newMatrix(3,1,CV_64FC1);
+            CvMat * Tbe = newMatrix(3,1,CV_64FC1);
+            CvMat * R_be = newMatrix(3,3,CV_64FC1);
+            CvMat * R_be_derivs[3];
+            R_be_derivs[0] = newMatrix(3,3,CV_64FC1);
+            R_be_derivs[1] = newMatrix(3,3,CV_64FC1);
+            R_be_derivs[2] = newMatrix(3,3,CV_64FC1);
+            generate_Rbe(phi, theta, psi, R_be);
+            get_Rbe_derivs(phi, theta, psi, R_be_derivs[0], R_be_derivs[1], R_be_derivs[2]);
+
+            Tbe->data.db[0] = x->data.db[0];
+            Tbe->data.db[1] = x->data.db[1];
+            Tbe->data.db[2] = x->data.db[2];
+
+            //Point measurement terms
+            for (int k = 0; k < n_pts; k++)
             {
-                cvmSet( H, i, j+6, cvmGet( H, i, j)*DT);
+                //Get existing state corresponding to measurement, and transform to body frame too
+                xe->data.db[0] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3];
+                xe->data.db[1] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+1];
+                xe->data.db[2] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+2];
+                cvMatMul(R_be,xe,xb);
+                cvSub(xb,Tbe,xb);
+                dzdxb->data.db[0] = -FX/(xb->data.db[0]*xb->data.db[0])*(xb->data.db[1]+BASELINE/2.0);
+                dzdxb->data.db[1] = FX/xb->data.db[0];
+                dzdxb->data.db[2] = 0.0;
+                dzdxb->data.db[3] = -FY/(xb->data.db[0]*xb->data.db[0])*xb->data.db[2];
+                dzdxb->data.db[4] = 0.0;
+                dzdxb->data.db[5] = FY/xb->data.db[0];
+                dzdxb->data.db[6] = -FX/(xb->data.db[0]*xb->data.db[0])*(xb->data.db[1]-BASELINE/2.0);
+                dzdxb->data.db[7] = FX/xb->data.db[0];
+                dzdxb->data.db[8] = 0.0;
+                dzdxb->data.db[9] = -FY/(xb->data.db[0]*xb->data.db[0])*xb->data.db[2];
+                dzdxb->data.db[10] = 0.0;
+                dzdxb->data.db[11] = FY/xb->data.db[0];
+
+                //dzdr and dzdxe
+                cvMatMul(dzdxb,R_be,temp43);
+                for (int i = 0; i < 4; i++)
+                {
+                    for (int j = 0; j < 3; j++)
+                    {
+                        cvmSet(H,curve_meas_size+k*4+i,j,-temp43->data.db[3*i+j]);
+                        cvmSet(H,curve_meas_size+k*4+i,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+j,temp43->data.db[3*i+j]);
+                    }
+                }
+
+                //dzPsi
+                cvSub(xe,Tbe,xe);
+                for (int j = 0; j < 3; j++)
+                {
+                    cvMatMul(R_be_derivs[j],xe,temp31);
+                    cvMatMul(dzdxb,temp31,temp41);
+                    for (int i = 0; i < 4; i++)
+                        cvmSet(H,curve_meas_size+k*4+i,3+j,temp41->data.db[i]);
+                }
             }
-            
         }
+        
+        //Pose derivs... ??!?
+        //for (int i = 0; i < H->rows; i++)
+        //{
+        //    for (int j = 0; j < 6; j++)
+        //    {
+        //        cvmSet( H, i, j+6, cvmGet( H, i, j)*DT);
+        //    }
+            
+        //}
 
         cvTranspose(H,Ht);
 
@@ -1114,9 +1168,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvReleaseMat(&delP);
         cvReleaseMat(&Rotderiv);
         cvReleaseMat(&Pt);
-        cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
-        //cout << "x:\n" << endl;
-        //printMatrix(x);
+        //cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
         
 	gettimeofday(&stop, NULL);
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
@@ -1323,6 +1375,39 @@ void KalmanFilter::get_Reb_derivs(double phi, double theta, double psi, CvMat * 
         R_eb_psi->data.db[6] = 0.0;
         R_eb_psi->data.db[7] = 0.0;
         R_eb_psi->data.db[8] = 0.0;
+}
+
+void KalmanFilter::get_Rbe_derivs(double phi, double theta, double psi, CvMat * R_be_phi, CvMat * R_be_theta, CvMat * R_be_psi)
+{
+        R_be_phi->data.db[0] = 0.0;
+        R_be_phi->data.db[3] = cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi);
+        R_be_phi->data.db[6] = -cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi);
+        R_be_phi->data.db[1] = 0.0;
+        R_be_phi->data.db[4] = sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi);
+        R_be_phi->data.db[7] = -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi);
+        R_be_phi->data.db[2] = 0.0;
+        R_be_phi->data.db[5] = cos(theta)*cos(phi);
+        R_be_phi->data.db[8] = -cos(theta)*sin(phi);
+        
+        R_be_theta->data.db[0] = -cos(psi)*sin(theta);
+        R_be_theta->data.db[3] = cos(psi)*cos(theta)*sin(phi);
+        R_be_theta->data.db[6] = cos(psi)*cos(theta)*cos(phi);
+        R_be_theta->data.db[1] = -sin(psi)*sin(theta);
+        R_be_theta->data.db[4] = sin(psi)*cos(theta)*sin(phi);
+        R_be_theta->data.db[7] = sin(psi)*cos(theta)*cos(phi);
+        R_be_theta->data.db[2] = -cos(theta);
+        R_be_theta->data.db[5] = -sin(theta)*sin(phi);
+        R_be_theta->data.db[8] = -sin(theta)*cos(phi);
+        
+        R_be_psi->data.db[0] = -sin(psi)*cos(theta);
+        R_be_psi->data.db[3] = -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi);
+        R_be_psi->data.db[6] = -sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi);
+        R_be_psi->data.db[1] = cos(psi)*cos(theta);
+        R_be_psi->data.db[4] = cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi);
+        R_be_psi->data.db[7] = cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi);
+        R_be_psi->data.db[2] = 0.0;
+        R_be_psi->data.db[5] = 0.0;
+        R_be_psi->data.db[8] = 0.0;
 }
 
 

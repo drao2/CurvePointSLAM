@@ -75,6 +75,7 @@ public:
 	float getTime();
 	void resetTime();
         void get_Reb_derivs(double phi, double theta, double psi, CvMat * R_eb_phi, CvMat * R_eb_theta, CvMat * R_eb_psi);
+        void get_Rbe_derivs(double phi, double theta, double psi, CvMat * R_be_phi, CvMat * R_be_theta, CvMat * R_be_psi);
         void printMatrix(CvMat *);
 	CvMat * A1;
 	CvMat * A2;
