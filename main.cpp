@@ -1295,7 +1295,7 @@ int main(void)
 
             //cvShowImage("Left",image_color[LEFT]);
             //cvShowImage("Right",image_color[RIGHT]);
-            //cvWaitKey(0);
+            cvWaitKey(0);
         }
 
 	return 0;

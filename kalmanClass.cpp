@@ -913,6 +913,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 	CvMat * R = newMatrix(meas_size,meas_size,CV_64FC1);
 	CvMat * S = newMatrix(meas_size,meas_size,CV_64FC1);
         CvMat * Rotderiv = newMatrix(8,8,CV_64FC1);
+        CvMat * predicted_meas_pts = newMatrix(pt_meas_size+1,1,CV_64FC1);
         
         //Set meas noise
         for (int i = 0; i < curve_meas_size; i++)
@@ -989,6 +990,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                         cvmSet( H, i+k*8, j+curve_num->at(k)*8+ROBOT_STATE_SIZE, temp8->data.db[8*i+j]);
                     }
                 }
+        //cvShowImage("H",H);
+        //cvWaitKey(0);
                 //Terms relating measurement to Tx, Ty and psi
                 for (int i = 0; i < 4; i++)
                 {
@@ -1002,6 +1005,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                     cvmSet( H, i+k*8, 1, -cos(psi));
                     cvmSet( H, i+k*8, 5, temp81->data.db[i]);
                 }
+        //cvShowImage("H",H);
+        //cvWaitKey(0);
 
             cvSetZero(temp8);
             cvSetZero(temp81);
@@ -1042,6 +1047,14 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                 xe->data.db[2] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+2];
                 cvMatMul(R_be,xe,xb);
                 cvSub(xb,Tbe,xb);
+                
+                //Add predicted measurement to vector too (for later)
+                predicted_meas_pts->data.db[k*4] = FX/xb->data.db[0]*(xb->data.db[1]+0.5*BASELINE)+CX;
+                predicted_meas_pts->data.db[k*4+1] = FX/xb->data.db[0]*xb->data.db[2]+CY;
+                predicted_meas_pts->data.db[k*4+2] = FX/xb->data.db[0]*(xb->data.db[1]-0.5*BASELINE)+CX;
+                predicted_meas_pts->data.db[k*4+3] = FX/xb->data.db[0]*xb->data.db[2]+CY;
+                
+                //dzdxb
                 dzdxb->data.db[0] = -FX/(xb->data.db[0]*xb->data.db[0])*(xb->data.db[1]+BASELINE/2.0);
                 dzdxb->data.db[1] = FX/xb->data.db[0];
                 dzdxb->data.db[2] = 0.0;
@@ -1065,6 +1078,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                         cvmSet(H,curve_meas_size+k*4+i,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+j,temp43->data.db[3*i+j]);
                     }
                 }
+        //cvShowImage("H",H);
+        //cvWaitKey(0);
 
                 //dzPsi
                 cvSub(xe,Tbe,xe);
@@ -1075,18 +1090,21 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                     for (int i = 0; i < 4; i++)
                         cvmSet(H,curve_meas_size+k*4+i,3+j,temp41->data.db[i]);
                 }
+        //cvShowImage("H",H);
+        //cvWaitKey(0);
             }
         }
-        
+        //cvShowImage("H",H);
+        //cvWaitKey(0);
         //Pose derivs... ??!?
-        //for (int i = 0; i < H->rows; i++)
-        //{
-        //    for (int j = 0; j < 6; j++)
-        //    {
-        //        cvmSet( H, i, j+6, cvmGet( H, i, j)*DT);
-        //    }
-            
-        //}
+        for (int i = 0; i < H->rows; i++)
+        {
+            for (int j = 0; j < 6; j++)
+            {
+                cvmSet( H, i, j+6, cvmGet( H, i, j)*DT);
+            }
+           
+        }
 
         cvTranspose(H,Ht);
 
@@ -1108,12 +1126,17 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         tempn1->data.db[n*8] = x->data.db[2];
         tempn1->data.db[n*8+1] = x->data.db[3];
         tempn1->data.db[n*8+2] = x->data.db[4];
+        for (int i = 0; i < pt_meas_size; i++)
+        {
+            tempn1->data.db[i+curve_meas_size]=predicted_meas_pts->data.db[i];
+        }
 
         //cout << "Measurement:\n";
         //printMatrix(z);
         //cout << "Predicted Measurement:\n";
         //printMatrix(tempn1);
         cvSub(z,tempn1,tempn1);
+        printMatrix(tempn1);
 
         //cout << "Meas error:\n";
         //printMatrix(tempn1);
