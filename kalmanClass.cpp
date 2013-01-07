@@ -898,7 +898,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         for (int i = 0; i < pt_meas_size; i++)
             z->data.db[i+curve_meas_size] = point_meas[i];
         
-        printMatrix(z);
+        //printMatrix(z);
 
         CvMat * H = newMatrix(meas_size, existing_size, CV_64FC1);
         CvMat * Ht = newMatrix(existing_size, meas_size, CV_64FC1);
@@ -1136,7 +1136,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cout << "Predicted Measurement:\n";
         //printMatrix(tempn1);
         cvSub(z,tempn1,tempn1);
-        printMatrix(tempn1);
+        //printMatrix(tempn1);
 
         //cout << "Meas error:\n";
         //printMatrix(tempn1);

@@ -412,8 +412,10 @@ int main(void)
             cvCopy(image_raw[1], last_image_raw[1], NULL);
             cvCvtColor(last_image_raw[0],last_image[0],CV_RGB2GRAY);
             cvCvtColor(last_image_raw[1],last_image[1],CV_RGB2GRAY);
-            cvCopy(last_image_raw[0], last_image_color[0], NULL);
-            cvCopy(last_image_raw[1], last_image_color[1], NULL);
+            //cvCopy(last_image_raw[0], last_image_color[0], NULL);
+            //cvCopy(last_image_raw[1], last_image_color[1], NULL);
+            cvCopy(image_color[0], last_image_color[0], NULL);
+            cvCopy(image_color[1], last_image_color[1], NULL);
 
             //Do the REAL VISION stuff first
             for (int n = 0; n < FRAME_INTERVAL; n++)
@@ -443,9 +445,12 @@ int main(void)
             double point_meas_existing[200];
             double point_meas_new[200];
             int correspondences[50];
+            
+            cvCopy(image_raw[0], image_color[0], NULL);
+            cvCopy(image_raw[1], image_color[1], NULL);
             if(!first_time)
             {
-                pointFeatures->getPointMeasurements(&last_image[0],&image[0],&point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
+                pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
                 //cout << n_pts_existing << " " << n_pts_new << endl;
                 double phi = vodom_params[3];
                 double theta = vodom_params[4];
@@ -464,8 +469,6 @@ int main(void)
             //cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
             //cvRemap(image_raw[1], image_color[1], mx[1], my[1]);
 
-            cvCopy(image_raw[0], image_color[0], NULL);
-            cvCopy(image_raw[1], image_color[1], NULL);
 
 
 
@@ -473,12 +476,12 @@ int main(void)
             CvPoint2D32f map_endpts[] = {curveMatcher[0].map_endpt_tracked,curveMatcher[1].map_endpt_tracked};
             for (int i = 0; i < NUM_CAMERAS; ++i)
             {
-                    features[i].find_features(image_color[i],seg[i],i,roi[i],&map_endpts[0]);
+                    features[i].find_features(image_raw[i],seg[i],i,roi[i],&map_endpts[0]);
                     curveMatcher[i].map_endpt_tracked = map_endpts[i];
             }
 
-            cvResetImageROI(image_color[0]);
-            cvResetImageROI(image_color[1]);
+            //cvResetImageROI(image_color[0]);
+            //cvResetImageROI(image_color[1]);
 
 
 
@@ -935,8 +938,8 @@ int main(void)
 
                 cvShowImage("Left",image_color[LEFT]);
                 cvShowImage("Right",image_color[RIGHT]);
-                //cvShowImage("Last Left",last_image_color[LEFT]);
-                //cvShowImage("Last Right",last_image_color[RIGHT]);
+                cvShowImage("Last Left",last_image_color[LEFT]);
+                cvShowImage("Last Right",last_image_color[RIGHT]);
                 //cvWaitKey(10);
 
 

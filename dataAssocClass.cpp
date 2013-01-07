@@ -219,10 +219,10 @@ double * DataAssocClass::getMatchT(CvMat * curve_features,  IplImage ** last_ima
 
 
     //cvCircle(image_color[0], cvPoint(map_endpt_match.x,map_endpt_match.y), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );
-    cvCircle(last_image_color[0], cvPoint(map_endpt.x,map_endpt.y), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );
+    //cvCircle(last_image_color[0], cvPoint(map_endpt.x,map_endpt.y), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );
     cvCircle(image_color[0], cvPoint(meas_startpt.x,meas_startpt.y), 5, CV_RGB(255,0,0), 1, CV_AA, 0 );
     cvCircle(image_color[0], cvPoint(meas_endpt.x,meas_endpt.y), 5, CV_RGB(255,0,0), 1, CV_AA, 0 );
-    cvCircle(last_image_color[0], cvPoint(meas_startpt_match.x,meas_startpt_match.y), 5, CV_RGB(255,0,0), 1, CV_AA, 0 );
+    //cvCircle(last_image_color[0], cvPoint(meas_startpt_match.x,meas_startpt_match.y), 5, CV_RGB(255,0,0), 1, CV_AA, 0 );
 
     //cvCircle(image_color[0], cvPoint(temp_pt2a.x,temp_pt2a.y), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );
     //cvCircle(image_color[0], cvPoint(temp_pt3a.x,temp_pt3a.y), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );

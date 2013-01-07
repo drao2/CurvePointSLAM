@@ -152,6 +152,18 @@ void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limit
                    pos.y = 0.0;
             }
         }
+                   
+        //Generate state map points
+        for (int k = 0; k < num_pts; k++)
+        {
+            pos.x = state->data.db[8*num_curves+ROBOT_STATE_SIZE+k*3];
+            pos.y = state->data.db[8*num_curves+ROBOT_STATE_SIZE+k*3+1];
+                convert3Dtogroundmap(&pos, &map_point);
+
+                cvCircle(landmark_map,map_point,1,CV_RGB(127,127,127));
+                pos.x = 0.0;
+                pos.y = 0.0;
+        }
 
     cvShowImage("Landmark Map",landmark_map);
 

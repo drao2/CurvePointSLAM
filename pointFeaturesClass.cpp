@@ -18,8 +18,8 @@ PointFeaturesClass::PointFeaturesClass()
         //srand(0);
 	//return;
         
-        optical_flow_window = cvSize(25,25);
-        optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .01 );
+        optical_flow_window = cvSize(35,35);
+        optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .0001 );
         
         num_pts_last = 0;
         num_pts_curr = 0;
@@ -35,7 +35,7 @@ PointFeaturesClass::~PointFeaturesClass()
 	//return;
 }
 
-void PointFeaturesClass::getPointMeasurements(IplImage ** last_image, IplImage ** image, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondences)
+void PointFeaturesClass::getPointMeasurements(IplImage ** last_image, IplImage ** image, IplImage ** image_color, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondences)
 { 
     
 timeval t_start, t_stop;
@@ -80,26 +80,26 @@ float elapsedTime;
     char tstring[5];
     for (int i = 0; i < *num_existing_meas; i++)
     {
-        cvCircle(image[LEFT], cvPoint(meas_existing[4*i],meas_existing[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
+        cvCircle(image_color[LEFT], cvPoint(meas_existing[4*i],meas_existing[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         sprintf(tstring,"%d",correspondences[i]);
-        cvPutText(image[LEFT],tstring,cvPoint(meas_existing[4*i],meas_existing[4*i+1]-5),&font, CV_RGB(255,255,255));
+        cvPutText(image_color[LEFT],tstring,cvPoint(meas_existing[4*i],meas_existing[4*i+1]-5),&font, CV_RGB(255,255,255));
         
-        cvCircle(image[RIGHT], cvPoint(meas_existing[4*i+2],meas_existing[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
+        cvCircle(image_color[RIGHT], cvPoint(meas_existing[4*i+2],meas_existing[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         sprintf(tstring,"%d",correspondences[i]);
-        cvPutText(image[RIGHT],tstring,cvPoint(meas_existing[4*i+2],meas_existing[4*i+3]-5),&font, CV_RGB(255,255,255));
+        cvPutText(image_color[RIGHT],tstring,cvPoint(meas_existing[4*i+2],meas_existing[4*i+3]-5),&font, CV_RGB(255,255,255));
     }
     for (int i = 0; i < *num_new_meas; i++)
     {
-        cvCircle(image[LEFT], cvPoint(meas_new[4*i],meas_new[4*i+1]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
+        cvCircle(image_color[LEFT], cvPoint(meas_new[4*i],meas_new[4*i+1]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
         sprintf(tstring,"%d",-1);
-        cvPutText(image[LEFT],tstring,cvPoint(meas_new[4*i],meas_new[4*i+1]-5),&font, CV_RGB(0,0,0));
+        cvPutText(image_color[LEFT],tstring,cvPoint(meas_new[4*i],meas_new[4*i+1]-5),&font, CV_RGB(0,0,0));
         
-        cvCircle(image[RIGHT], cvPoint(meas_new[4*i+2],meas_new[4*i+3]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
+        cvCircle(image_color[RIGHT], cvPoint(meas_new[4*i+2],meas_new[4*i+3]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
         sprintf(tstring,"%d",-1);
-        cvPutText(image[RIGHT],tstring,cvPoint(meas_new[4*i+2],meas_new[4*i+3]-5),&font, CV_RGB(0,0,0));
+        cvPutText(image_color[RIGHT],tstring,cvPoint(meas_new[4*i+2],meas_new[4*i+3]-5),&font, CV_RGB(0,0,0));
     }
-    cvShowImage("Left",image[LEFT]);
-    cvShowImage("Right",image[RIGHT]);
+    cvShowImage("Left",image_color[LEFT]);
+    cvShowImage("Right",image_color[RIGHT]);
     cvWaitKey(10);
 }
 
@@ -153,6 +153,7 @@ void PointFeaturesClass::trackExistingLandmarks(IplImage ** last_image, IplImage
                                     meas_existing[4*num_pts_curr+3] = temp_pts_curr[RIGHT][i].y;
                                     matches_curr[num_pts_curr] = matches_last[i];
                                     correspondence[num_pts_curr] = matches_last[i];
+                                    cout << "Feature " << correspondence[num_pts_curr] << ": Left error " << optical_flow_feature_error_left[i] << ", Right Error " << optical_flow_feature_error_right[i] << endl;
                                     num_pts_curr++;
                                 }
                                 cvResetImageROI(image[LEFT]);
