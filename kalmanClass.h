@@ -43,6 +43,7 @@
 #define THETA_MEAS_COV 0.2
 #define Z_MEAS_COV 0.4
 
+#define JAC_EPS 1e-4    //Epsilon for numerical Jacobian
 
 #define DT  0.2
 
@@ -77,6 +78,13 @@ public:
         void get_Reb_derivs(double phi, double theta, double psi, CvMat * R_eb_phi, CvMat * R_eb_theta, CvMat * R_eb_psi);
         void get_Rbe_derivs(double phi, double theta, double psi, CvMat * R_be_phi, CvMat * R_be_theta, CvMat * R_be_psi);
         void printMatrix(CvMat *);
+        
+        void getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> * A, vector<int> * curve_num, int * point_nums, int n_pts);
+        
+        void getGxNumeric(CvMat * Gx,double * measurement,CvMat * x);
+        void getGzNumeric(CvMat * Gz,double * measurement,CvMat * x);
+        void InitPoint(CvMat * pt,double * measurement,CvMat * x);
+        void predictPointMeas(CvMat * meas, CvMat * x, int point_num, int num_curves);
 	CvMat * A1;
 	CvMat * A2;
 	CvMat * A1l;
