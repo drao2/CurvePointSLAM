@@ -83,6 +83,11 @@ public:
         
         void getGxNumeric(CvMat * Gx,double * measurement,CvMat * x);
         void getGzNumeric(CvMat * Gz,double * measurement,CvMat * x);
+        
+        void getGxCurveNumeric(CvMat * Gx,CvMat * z,CvMat * x, CvMat * A);
+        void getGzCurveNumeric(CvMat * Gz,CvMat * z,CvMat * x, CvMat * A);
+        
+        void InitCurve(CvMat * curve, CvMat * z, CvMat * x, CvMat * A);
         void InitPoint(CvMat * pt,double * measurement,CvMat * x);
         void predictPointMeas(CvMat * meas, CvMat * x, int point_num, int num_curves);
 	CvMat * A1;

@@ -487,6 +487,11 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         cvSetZero(Rot);
         cvSetZero(Rotderiv);
         
+        CvMat * Gznum = newMatrix(8,8,CV_64FC1);
+        CvMat * Gxnum = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
+        getGxCurveNumeric(Gxnum,z,x,A);
+        getGzCurveNumeric(Gznum,z,x,A);
+        
         //Determine rot matrix
         for (int i = 0; i < 4; i++)
         {
@@ -633,6 +638,16 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
             cvmSet(Gx,i,5, temp81->data.db[i]);
             cvmSet(Gx,i+4,5, temp81->data.db[i+4]);
         }
+        
+        
+        cout << "Gxnum:" << endl;
+        printMatrix(Gxnum);
+        cout << "Gx:" << endl;
+        printMatrix(Gx);
+        cout << "Gznum:" << endl;
+        printMatrix(Gznum);
+        cout << "Gz:" << endl;
+        printMatrix(Gz);
 
 
         cvTranspose(Gx,temp58);
@@ -1136,12 +1151,12 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvmSet(Hnum,n*8,2,1.0);
         cvmSet(Hnum,n*8+1,3,1.0);
         cvmSet(Hnum,n*8+2,4,1.0);
-        cout << "Hnum: " << endl;
-        printMatrix(Hnum);
+        //cout << "Hnum: " << endl;
+        //printMatrix(Hnum);
         cvSub(Hnum,H,Hnum);
-        cout << "Herror: " << endl;
-        printMatrix(Hnum);
-        cvShowImage("Herror",Hnum);
+        //cout << "Herror: " << endl;
+        //printMatrix(Hnum);
+        //cvShowImage("Herror",Hnum);
         
         //Update state
         for (int i = 0; i < n; i++)
@@ -1617,4 +1632,95 @@ void KalmanFilter::InitPoint(CvMat * pt,double * measurement,CvMat * x)
     for (int j= 0; j < 3; j++)
         pt->data.db[j] += x->data.db[j];   //xe = R_eb*xb+T_eb, T_eb = x[0:2]
 
+}
+
+
+void KalmanFilter::getGxCurveNumeric(CvMat * Gx,CvMat * z,CvMat * x, CvMat * A)
+{
+    CvMat * pt1 = newMatrix(8,1,CV_64FC1);
+    CvMat * pt2 = newMatrix(8,1,CV_64FC1);
+    CvMat * grad = newMatrix(8,1,CV_64FC1);
+    for (int j = 0; j < ROBOT_STATE_SIZE; j++)
+    {
+        x->data.db[j] += JAC_EPS;
+        InitCurve(pt1,z,x,A);
+        x->data.db[j] -= JAC_EPS;
+        x->data.db[j] -= JAC_EPS;
+        InitCurve(pt2,z,x,A);
+        x->data.db[j] += JAC_EPS;
+        cvSub(pt1,pt2,grad);
+        for (int i = 0; i < 8; i++)
+            cvmSet(Gx,i,j,grad->data.db[i]/(2.0*JAC_EPS));
+    }
+    cvReleaseMat(&pt1);
+    cvReleaseMat(&pt2);
+    cvReleaseMat(&grad);
+}
+
+void KalmanFilter::getGzCurveNumeric(CvMat * Gz,CvMat * z,CvMat * x, CvMat * A)
+{
+    CvMat * pt1 = newMatrix(8,1,CV_64FC1);
+    CvMat * pt2 = newMatrix(8,1,CV_64FC1);
+    CvMat * grad = newMatrix(8,1,CV_64FC1);
+    for (int j = 0; j < z->rows; j++)
+    {
+        z->data.db[j] += JAC_EPS;
+        InitCurve(pt1,z,x,A);
+        z->data.db[j] -= JAC_EPS;
+        z->data.db[j] -= JAC_EPS;
+        InitCurve(pt2,z,x,A);
+        z->data.db[j] += JAC_EPS;
+        cvSub(pt1,pt2,grad);
+        for (int i = 0; i < 8; i++)
+            cvmSet(Gz,i,j,grad->data.db[i]/(2.0*JAC_EPS));
+    }
+    cvReleaseMat(&pt1);
+    cvReleaseMat(&pt2);
+    cvReleaseMat(&grad);
+}
+
+void KalmanFilter::InitCurve(CvMat * curve, CvMat * z, CvMat * x, CvMat * A)
+{
+    CvMat * Ainv = newMatrix(4,4,CV_64FC1);
+    CvMat * zx = newMatrix(4,1,CV_64FC1);
+    CvMat * zy = newMatrix(4,1,CV_64FC1);
+    CvMat * Hinv = newMatrix(8,8,CV_64FC1);
+    CvMat * R = newMatrix(8,8,CV_64FC1);
+    double psi = x->data.db[5];
+    
+    for (int i = 0; i < 4; i++)
+        {
+            cvmSet(R,i,i,cos(psi));
+            cvmSet(R,i+4,i+4,cos(psi));
+            cvmSet(R,i+4,i,sin(psi));
+            cvmSet(R,i,i+4,-sin(psi));
+        }
+    
+    for (int i = 0; i < 4; i++)
+        {
+            cvmSet( zx, i, 0, z->data.db[i]);
+            cvmSet( zy, i, 0, z->data.db[i+4]);
+
+        }
+
+        cvInvert(A,Ainv,CV_SVD);
+        cvMatMul(Ainv,zx,Ainvzx);
+        cvMatMul(Ainv,zy,Ainvzy);
+        
+        //Determine new H and add new curve
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                cvmSet( Hinv, i, j, Ainv->data.db[4*i+j]);
+                cvmSet( Hinv, i+4, j+4, Ainv->data.db[4*i+j]);
+            }
+
+        }
+        cvMatMul(R,z,curve);
+        for (int i = 0; i < 4; i++)
+            curve->data.db[i] += x->data.db[0];
+        for (int i = 4; i < 8; i++)
+            curve->data.db[i] += x->data.db[1];
+        cvMatMul(Hinv,curve,curve);
 }
