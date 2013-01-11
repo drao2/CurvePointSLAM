@@ -463,12 +463,12 @@ void KalmanFilter::AddFirstStates(CvMat * measurement)
             cvmSet(P, 0, 0, 0.0000001);
             cvmSet(P, 1, 1, 0.0000001);
             cvmSet(P, 5, 5, 0.0000001);
-            cvmSet(P, 6, 6, 0.1);
-            cvmSet(P, 7, 7, 0.01);
-            cvmSet(P, 8, 8, 0.01);
-            cvmSet(P, 9, 9, 0.1);
-            cvmSet(P, 10, 10, 0.1);
-            cvmSet(P, 11, 11, 0.1);
+            cvmSet(P, 6, 6, 1.0);
+            cvmSet(P, 7, 7, 1.0);
+            cvmSet(P, 8, 8, 1.0);
+            cvmSet(P, 9, 9, 1.0);
+            cvmSet(P, 10, 10, 1.0);
+            cvmSet(P, 11, 11, 1.0);
     
         num_curves = 2;
 }
@@ -640,14 +640,14 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         }
         
         
-        cout << "Gxnum:" << endl;
-        printMatrix(Gxnum);
-        cout << "Gx:" << endl;
-        printMatrix(Gx);
-        cout << "Gznum:" << endl;
-        printMatrix(Gznum);
-        cout << "Gz:" << endl;
-        printMatrix(Gz);
+        //cout << "Gxnum:" << endl;
+        //printMatrix(Gxnum);
+        //cout << "Gx:" << endl;
+        //printMatrix(Gx);
+        //cout << "Gznum:" << endl;
+        //printMatrix(Gznum);
+        //cout << "Gz:" << endl;
+        //printMatrix(Gz);
 
 
         cvTranspose(Gx,temp58);
@@ -912,6 +912,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 
 void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)
 {
+        cout << "Num curves to update: " << n << endl;
 	gettimeofday(&start, NULL);
         
         int curve_meas_size = n*8+3;
@@ -1137,13 +1138,27 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 
         cvTranspose(H,Ht);
 
+        cout << "K before calc" << endl;
+        cvShowImage("K",K);
+        cvWaitKey(0);
         //Calculate Kalman gain
         cvMatMul(P,Ht,temp);
         cvMatMul(H,temp,S);
         cvAdd(S,R,S);
+            cvShowImage("R",R);
+            cvShowImage("S",S);
+            cvWaitKey(0);
         cvInvert(S,tempn,CV_LU);
+            cvShowImage("tempn",tempn);
+            cvWaitKey(0);
         cvMatMul(Ht,tempn,K);
+        
+        cvShowImage("K",K);
+        cvShowImage("P",P);
+        cout << "K first round, P before calc" << endl;
+        cvWaitKey(0);
         cvMatMul(P,K,K);
+        cout << "K after P, P before calc" << endl;
         
         //Get numeric Jacobian to compare
         CvMat * Hnum = newMatrix(meas_size, existing_size, CV_64FC1);
@@ -1154,9 +1169,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cout << "Hnum: " << endl;
         //printMatrix(Hnum);
         cvSub(Hnum,H,Hnum);
-        //cout << "Herror: " << endl;
-        //printMatrix(Hnum);
-        //cvShowImage("Herror",Hnum);
+        cout << "Herror: " << endl;
+        printMatrix(Hnum);
+        cvShowImage("Herror",Hnum);
         
         //Update state
         for (int i = 0; i < n; i++)
@@ -1182,7 +1197,16 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 
         //cout << "Meas error:\n";
         //printMatrix(tempn1);
+        cout << "Meas error:\n";
+        printMatrix(tempn1);
         cvMatMul(K,tempn1,delx);
+        
+        cout << "Kalman Gain:\n";
+        printMatrix(K);
+        cout << "delx:\n";
+        printMatrix(delx);
+        cvShowImage("K",K);
+        cvWaitKey(0);
 
         //cout << "H:\n";
         //printMatrix(H);
@@ -1217,6 +1241,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 
         cvTranspose(P,Pt);
         cvAddWeighted(P, 0.5, Pt, 0.5, 0.0, P);
+        cvShowImage("P",P);
+        cout << "P after update" << endl;
+        cvWaitKey(0);
         cvReleaseMat(&Pt);
         
         cvReleaseMat(&H);
@@ -1489,6 +1516,7 @@ void KalmanFilter::printMatrix(CvMat * matrix)
     
     for (int i = 0; i < rows; i++)
     {
+        printf("%d:\t",i);
         for (int j = 0; j < cols; j++)
         {
             if(matrix->data.db[cols*i+j] >= 0.0)

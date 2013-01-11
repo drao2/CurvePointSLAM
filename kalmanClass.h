@@ -39,9 +39,9 @@
 #define WX_COV 0.1
 #define WY_COV 0.1
 #define WZ_COV 0.002
-#define PHI_MEAS_COV 0.2
-#define THETA_MEAS_COV 0.2
-#define Z_MEAS_COV 0.4
+#define PHI_MEAS_COV 1.0
+#define THETA_MEAS_COV 1.0
+#define Z_MEAS_COV 2.0
 
 #define JAC_EPS 1e-4    //Epsilon for numerical Jacobian
 
