@@ -1228,6 +1228,7 @@ int main(void)
                         z->data.db[num_curves_to_update*8] = height;
                         z->data.db[num_curves_to_update*8+1] = phi;
                         z->data.db[num_curves_to_update*8+2] = theta;
+                        num_curves_to_update = 0;
                         EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     }
 
