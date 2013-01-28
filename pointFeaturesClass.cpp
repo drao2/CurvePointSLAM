@@ -131,9 +131,9 @@ void PointFeaturesClass::trackExistingLandmarks(IplImage ** last_image, IplImage
                     if((temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) > 0.0 && (temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) < 50.0)
                     {
                         //If not too close to the edge
-                        if(temp_pts_curr[LEFT][i].x > PATCH_HALF && temp_pts_curr[LEFT][i].x < PIC_WIDTH-PATCH_HALF && temp_pts_curr[LEFT][i].y > PATCH_HALF && temp_pts_curr[LEFT][i].y < PIC_HEIGHT-PATCH_HALF)
+                        if(temp_pts_curr[LEFT][i].x > PATCH_HALF+0 && temp_pts_curr[LEFT][i].x < PIC_WIDTH-PATCH_HALF-0 && temp_pts_curr[LEFT][i].y > PATCH_HALF+0 && temp_pts_curr[LEFT][i].y < PIC_HEIGHT-PATCH_HALF-0)
                         {
-                            if(temp_pts_curr[RIGHT][i].x > PATCH_HALF && temp_pts_curr[RIGHT][i].x < PIC_WIDTH-PATCH_HALF && temp_pts_curr[RIGHT][i].y > PATCH_HALF && temp_pts_curr[RIGHT][i].y < PIC_HEIGHT-PATCH_HALF)
+                            if(temp_pts_curr[RIGHT][i].x > PATCH_HALF+0 && temp_pts_curr[RIGHT][i].x < PIC_WIDTH-PATCH_HALF-0 && temp_pts_curr[RIGHT][i].y > PATCH_HALF+0 && temp_pts_curr[RIGHT][i].y < PIC_HEIGHT-PATCH_HALF-0)
                             {
                                 //If SSD matches reasonably between tracked features for both images
                                 cvSetImageROI(image[LEFT],cvRect(temp_pts_curr[LEFT][i].x-PATCH_HALF,temp_pts_curr[LEFT][i].y-PATCH_HALF,PATCH_SIZE,PATCH_SIZE));
@@ -186,7 +186,7 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
         //Remove ones that are too close to the edges
         for (int i = 0; i < num_features_left; i++)
         {
-            while (image_features_left[i].x <= WINDOW_HALF || image_features_left[i].x >= PIC_WIDTH-WINDOW_HALF || image_features_left[i].y <= WINDOW_HALF || image_features_left[i].y >= PIC_HEIGHT-WINDOW_HALF )
+            while (image_features_left[i].x <= WINDOW_HALF || image_features_left[i].x >= PIC_WIDTH-WINDOW_HALF || image_features_left[i].y <= 50+WINDOW_HALF || image_features_left[i].y >= PIC_HEIGHT-WINDOW_HALF )
             {
                 image_features_left[i] =  image_features_left[num_features_left-1];
                 num_features_left--;
@@ -196,7 +196,7 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
         }
         for (int i = 0; i < num_features_right; i++)
         {
-            while (image_features_right[i].x <= WINDOW_HALF || image_features_right[i].x >= PIC_WIDTH-WINDOW_HALF || image_features_right[i].y <= WINDOW_HALF || image_features_right[i].y >= PIC_HEIGHT-WINDOW_HALF )
+            while (image_features_right[i].x <= WINDOW_HALF || image_features_right[i].x >= PIC_WIDTH-WINDOW_HALF || image_features_right[i].y <= 50+WINDOW_HALF || image_features_right[i].y >= PIC_HEIGHT-WINDOW_HALF )
             {
                 image_features_right[i] =  image_features_right[num_features_right-1];
                 num_features_right--;

@@ -691,6 +691,15 @@ void CurveFittingClass::fit_curve(double * params, CvMat ** featuresLeftImage, C
         params[17] += PI;
         params[18] *= -1.0;
     }
+    if (params[16] < -PI/2.0)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            params[2*i+1] *= -1.0;
+        }
+        params[17] = (-PI - params[17]);
+        params[18] += PI;
+    }
     
     while(params[16] > PI)
         params[16] -= 2*PI;

@@ -31,7 +31,7 @@
 */
 
 #define MEAS_COV 10.0 //Innovation for curve cp meas (in m)
-#define PT_MEAS_COV 10.0 //Innovation for pt meas (in pixels)
+#define PT_MEAS_COV 1.0 //Innovation for pt meas (in pixels)
 
 #define VX_COV 0.05
 #define VY_COV 0.05
@@ -45,7 +45,7 @@
 
 #define JAC_EPS 1e-4    //Epsilon for numerical Jacobian
 
-#define DT  0.2
+#define DT  0.1
 
 #define VREAL 1.0
 
@@ -176,6 +176,8 @@ public:
 
         int num_curves;
         int num_points;
+        int num_curves_before_add;
+        int num_points_before_add;
         
 
 	timeval start, stop;
