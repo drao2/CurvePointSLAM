@@ -525,6 +525,8 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         ones->data.db[2] = 1.0;
         ones->data.db[3] = 1.0;
 
+        cout << "x before adding curve:\n";
+        printMatrix(x);
         //Resize P and x
         CvMat * Pcopy = cvCloneMat(P);
         CvMat * xcopy = cvCloneMat(x);
@@ -556,7 +558,8 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         
         if(num_points)
         {
-            //The existing point landmarks need to be moved down (3 blocks, Pri,Pir, Pii), note that r refers to robot and curve landmarks!
+            //The existing point landmarks need to be moved down
+            //And covariance (3 blocks, Pri,Pir, Pii), note that r refers to robot and curve landmarks!
             for (int i = 0; i < (num_curves-1)*8+ROBOT_STATE_SIZE; i++)
             {
                 for (int j = (num_curves-1)*8+ROBOT_STATE_SIZE; j < existing_size; j++)
@@ -573,9 +576,12 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
             {
                 for (int j = (num_curves-1)*8+ROBOT_STATE_SIZE; j < existing_size; j++)
                     cvmSet(P,i+8,j+8,cvmGet(Pcopy,i,j));
+                x->data.db[i+8] = xcopy->data.db[i];
             }
         
         }
+        cout << "x after adding curve:\n";
+        printMatrix(x);
 
         cvReleaseMat(&xcopy);
         cvReleaseMat(&Pcopy);
@@ -1053,6 +1059,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvmSet( H, 1+n*8, 3, 1.0);
         cvmSet( H, 2+n*8, 4, 1.0);
         
+        cout << "x before:\n";
+        printMatrix(x);
+        
         if (n_pts)
         {
             CvMat * dzdxb = newMatrix(4,3,CV_64FC1);
@@ -1242,8 +1251,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //printMatrix(tempn1);
         cvMatMul(K,tempn1,delx);
         
-        cout << "Kalman Gain:\n";
-        printMatrix(K);
+        //cout << "Kalman Gain:\n";
+        //printMatrix(K);
         cout << "delx:\n";
         printMatrix(delx);
         cvShowImage("K",K);
