@@ -123,7 +123,7 @@
 #define USE_VIDEO
 //#define SAVE_VIDEO
 
-#define VIDEO_FILENAME "cam29%d.avi"
+#define VIDEO_FILENAME "cam30%d.avi"
 
 
 //Macros

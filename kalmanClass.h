@@ -30,7 +30,7 @@
 #define Z_MEAS_COV 0.4
 */
 
-#define MEAS_COV 10.0 //Innovation for curve cp meas (in m)
+#define MEAS_COV 100.0 //Innovation for curve cp meas (in m)
 #define PT_MEAS_COV 10.0 //Innovation for pt meas (in pixels)
 
 #define VX_COV 0.05
@@ -39,9 +39,9 @@
 #define WX_COV 0.1
 #define WY_COV 0.1
 #define WZ_COV 0.002
-#define PHI_MEAS_COV 1.0
-#define THETA_MEAS_COV 1.0
-#define Z_MEAS_COV 2.0
+#define PHI_MEAS_COV 0.1
+#define THETA_MEAS_COV 0.1
+#define Z_MEAS_COV 0.4
 
 #define JAC_EPS 1e-4    //Epsilon for numerical Jacobian
 

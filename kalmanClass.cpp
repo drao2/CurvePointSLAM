@@ -525,8 +525,6 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         ones->data.db[2] = 1.0;
         ones->data.db[3] = 1.0;
 
-        cout << "x before adding curve:\n";
-        printMatrix(x);
         //Resize P and x
         CvMat * Pcopy = cvCloneMat(P);
         CvMat * xcopy = cvCloneMat(x);
@@ -580,8 +578,6 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
             }
         
         }
-        cout << "x after adding curve:\n";
-        printMatrix(x);
 
         cvReleaseMat(&xcopy);
         cvReleaseMat(&Pcopy);
@@ -1176,7 +1172,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvMatMul(P,K,K);
         
         //Delete gain entries related to states just added (VERY HACKY!)
-        for (int i = num_curves_before_add*8+ROBOT_STATE_SIZE; i < num_curves*8+ROBOT_STATE_SIZE; i++)
+        /*for (int i = num_curves_before_add*8+ROBOT_STATE_SIZE; i < num_curves*8+ROBOT_STATE_SIZE; i++)
         {
             for (int j = 0; j < K->cols; j++)
             {
@@ -1189,20 +1185,20 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             {
                 cvmSet(K,i,j,0.0);
             }
-        }
+        }*/
         
         
         //cout << "K after P, P before calc" << endl;
         
         //Get numeric Jacobian to compare
-        CvMat * Hnum = newMatrix(meas_size, existing_size, CV_64FC1);
-        getHNumeric(Hnum,x, n, A, curve_num, point_nums, n_pts);
-        cvmSet(Hnum,n*8,2,1.0);
-        cvmSet(Hnum,n*8+1,3,1.0);
-        cvmSet(Hnum,n*8+2,4,1.0);
+        //CvMat * Hnum = newMatrix(meas_size, existing_size, CV_64FC1);
+        //getHNumeric(Hnum,x, n, A, curve_num, point_nums, n_pts);
+        //cvmSet(Hnum,n*8,2,1.0);
+        //cvmSet(Hnum,n*8+1,3,1.0);
+        //cvmSet(Hnum,n*8+2,4,1.0);
         //cout << "Hnum: " << endl;
         //printMatrix(Hnum);
-        cvSub(Hnum,H,Hnum);
+        //cvSub(Hnum,H,Hnum);
         //cout << "Herror: " << endl;
         //printMatrix(Hnum);
         //cvShowImage("Herror",Hnum);
@@ -1256,7 +1252,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cout << "delx:\n";
         printMatrix(delx);
         cvShowImage("K",K);
-        cvWaitKey(0);
+        //cvWaitKey(0);
 
         //cout << "H:\n";
         //printMatrix(H);

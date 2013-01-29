@@ -153,7 +153,7 @@ void PointFeaturesClass::trackExistingLandmarks(IplImage ** last_image, IplImage
                                     meas_existing[4*num_pts_curr+3] = temp_pts_curr[RIGHT][i].y;
                                     matches_curr[num_pts_curr] = matches_last[i];
                                     correspondence[num_pts_curr] = matches_last[i];
-                                    cout << "Feature " << correspondence[num_pts_curr] << ": Left error " << optical_flow_feature_error_left[i] << ", Right Error " << optical_flow_feature_error_right[i] << endl;
+                                    //cout << "Feature " << correspondence[num_pts_curr] << ": Left error " << optical_flow_feature_error_left[i] << ", Right Error " << optical_flow_feature_error_right[i] << endl;
                                     num_pts_curr++;
                                 }
                                 cvResetImageROI(image[LEFT]);
