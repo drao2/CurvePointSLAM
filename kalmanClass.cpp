@@ -1321,6 +1321,297 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvWaitKey(0);
 }
 
+void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts)
+{
+	gettimeofday(&start, NULL);
+        
+        int meas_size = n_pts*4;
+        int existing_size = P->rows;
+        
+        cvSetZero(Rot);
+
+        CvMat * z = newMatrix(meas_size, 1, CV_64FC1);
+        for (int i = 0; i < meas_size; i++)
+            z->data.db[i] = point_meas[i];
+        
+        //printMatrix(z);
+
+        CvMat * H = newMatrix(meas_size, existing_size, CV_64FC1);
+        CvMat * Ht = newMatrix(existing_size, meas_size, CV_64FC1);
+        CvMat * K = newMatrix(existing_size, meas_size, CV_64FC1);
+        CvMat * Kt = newMatrix(meas_size, existing_size, CV_64FC1);
+        CvMat * temp = newMatrix(existing_size, meas_size, CV_64FC1);
+        CvMat * delx = newMatrix(existing_size, 1, CV_64FC1);
+        CvMat * tempn = newMatrix(meas_size, meas_size, CV_64FC1);
+        CvMat * tempn1 = newMatrix(meas_size, 1, CV_64FC1);
+        CvMat * tempn3 = newMatrix(existing_size, existing_size, CV_64FC1);
+        CvMat * delP = newMatrix(existing_size, existing_size, CV_64FC1);
+	CvMat * R = newMatrix(meas_size,meas_size,CV_64FC1);
+	CvMat * S = newMatrix(meas_size,meas_size,CV_64FC1);
+        CvMat * Rotderiv = newMatrix(8,8,CV_64FC1);
+        CvMat * predicted_meas_pts = newMatrix(meas_size+1,1,CV_64FC1);
+        
+        //Set meas noise
+        for (int i = 0; i < meas_size; i++)
+        {
+            R->data.db[(meas_size+1)*i] = pow(PT_MEAS_COV,2.0);
+        }
+
+        cvSetZero(temp8);
+        cvSetZero(temp81);
+        cvSetZero(temp16);
+        cvSetZero(temp161);
+        cvSetZero(H);
+
+        double Tx = x->data.db[0];
+        double Ty = x->data.db[1];
+        double Tz = x->data.db[2];
+        double phi = x->data.db[3];
+        double theta = x->data.db[4];
+        double psi = x->data.db[5];
+        
+        //Determine H
+        CvMat * dzdxb = newMatrix(4,3,CV_64FC1);
+        CvMat * temp43 = newMatrix(4,3,CV_64FC1);
+        CvMat * temp41 = newMatrix(4,1,CV_64FC1);
+        CvMat * temp31 = newMatrix(3,1,CV_64FC1);
+        CvMat * xe = newMatrix(3,1,CV_64FC1);
+        CvMat * xb = newMatrix(3,1,CV_64FC1);
+        CvMat * Tbe = newMatrix(3,1,CV_64FC1);
+        CvMat * R_be = newMatrix(3,3,CV_64FC1);
+        CvMat * R_be_derivs[3];
+        R_be_derivs[0] = newMatrix(3,3,CV_64FC1);
+        R_be_derivs[1] = newMatrix(3,3,CV_64FC1);
+        R_be_derivs[2] = newMatrix(3,3,CV_64FC1);
+        generate_Rbe(phi, theta, psi, R_be);
+        get_Rbe_derivs(phi, theta, psi, R_be_derivs[0], R_be_derivs[1], R_be_derivs[2]);
+
+        Tbe->data.db[0] = x->data.db[0];
+        Tbe->data.db[1] = x->data.db[1];
+        Tbe->data.db[2] = x->data.db[2];
+
+
+        //Point measurement terms
+        for (int k = 0; k < n_pts; k++)
+        {
+            //Get existing state corresponding to measurement, and transform to body frame too
+            xe->data.db[0] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3];
+            xe->data.db[1] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+1];
+            xe->data.db[2] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+2];
+            cvSub(xe,Tbe,xe);
+            cvMatMul(R_be,xe,xb);
+
+            //Add predicted measurement to vector too (for later)
+            predicted_meas_pts->data.db[k*4] = FX/xb->data.db[0]*(xb->data.db[1]+0.5*BASELINE)+CX;
+            predicted_meas_pts->data.db[k*4+1] = FY/xb->data.db[0]*xb->data.db[2]+CY;
+            predicted_meas_pts->data.db[k*4+2] = FX/xb->data.db[0]*(xb->data.db[1]-0.5*BASELINE)+CX;
+            predicted_meas_pts->data.db[k*4+3] = FY/xb->data.db[0]*xb->data.db[2]+CY;
+
+            //dzdxb
+            dzdxb->data.db[0] = -FX/(xb->data.db[0]*xb->data.db[0])*(xb->data.db[1]+BASELINE/2.0);
+            dzdxb->data.db[1] = FX/xb->data.db[0];
+            dzdxb->data.db[2] = 0.0;
+            dzdxb->data.db[3] = -FY/(xb->data.db[0]*xb->data.db[0])*xb->data.db[2];
+            dzdxb->data.db[4] = 0.0;
+            dzdxb->data.db[5] = FY/xb->data.db[0];
+            dzdxb->data.db[6] = -FX/(xb->data.db[0]*xb->data.db[0])*(xb->data.db[1]-BASELINE/2.0);
+            dzdxb->data.db[7] = FX/xb->data.db[0];
+            dzdxb->data.db[8] = 0.0;
+            dzdxb->data.db[9] = -FY/(xb->data.db[0]*xb->data.db[0])*xb->data.db[2];
+            dzdxb->data.db[10] = 0.0;
+            dzdxb->data.db[11] = FY/xb->data.db[0];
+
+            //dzdr and dzdxe
+            cvMatMul(dzdxb,R_be,temp43);
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    cvmSet(H,k*4+i,j,-temp43->data.db[3*i+j]);
+                    cvmSet(H,k*4+i,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+j,temp43->data.db[3*i+j]);
+                }
+            }
+    //cvShowImage("H",H);
+    //cvWaitKey(0);
+
+            //dzPsi
+            //cvSub(xe,Tbe,xe);
+            for (int j = 0; j < 3; j++)
+            {
+                cvMatMul(R_be_derivs[j],xe,temp31);
+                cvMatMul(dzdxb,temp31,temp41);
+                for (int i = 0; i < 4; i++)
+                    cvmSet(H,k*4+i,3+j,temp41->data.db[i]);
+            }
+    //cvShowImage("H",H);
+    //cvWaitKey(0);
+        }
+        //cvShowImage("H",H);
+        //cvWaitKey(0);
+        //Pose derivs... ??!?
+        //for (int i = 0; i < H->rows; i++)
+        //{
+        //    for (int j = 0; j < 6; j++)
+        //    {
+        //        cvmSet( H, i, j+6, cvmGet( H, i, j)*DT);
+        //    }
+        //}
+
+        cvTranspose(H,Ht);
+
+        cvShowImage("H",H);
+        printMatrix(H);
+        
+        //Calculate Kalman gain
+        cvMatMul(P,Ht,temp);
+        cvMatMul(H,temp,S);
+        cvAdd(S,R,S);
+        cvInvert(S,tempn,CV_SVD);
+        
+            //cvShowImage("tempn",tempn);
+            //cvWaitKey(0);
+        cvMatMul(Ht,tempn,K);
+        
+        //cvShowImage("P",P);
+        //cvWaitKey(0);
+        cvMatMul(P,K,K);
+        
+        //Delete gain entries related to states just added (VERY HACKY!)
+        /*for (int i = num_curves_before_add*8+ROBOT_STATE_SIZE; i < num_curves*8+ROBOT_STATE_SIZE; i++)
+        {
+            for (int j = 0; j < K->cols; j++)
+            {
+                cvmSet(K,i,j,0.0);
+            }
+        }
+        for (int i = num_points_before_add*3+num_curves*8+ROBOT_STATE_SIZE; i < num_points*3+num_curves*8+ROBOT_STATE_SIZE; i++)
+        {
+            for (int j = 0; j < K->cols; j++)
+            {
+                cvmSet(K,i,j,0.0);
+            }
+        }*/
+        
+        
+        //cout << "K after P, P before calc" << endl;
+        
+        //Get numeric Jacobian to compare
+        CvMat * Hnum = newMatrix(meas_size, existing_size, CV_64FC1);
+        std::vector<CvMat *> * A;
+        vector<int> * curve_num;
+        getHNumeric(Hnum,x, 0, A, curve_num, point_nums, n_pts);
+        //cvmSet(Hnum,n*8,2,1.0);
+        //cvmSet(Hnum,n*8+1,3,1.0);
+        //cvmSet(Hnum,n*8+2,4,1.0);
+        cout << "Hnum: " << endl;
+        printMatrix(Hnum);
+        //cvSub(Hnum,H,Hnum);
+        //cout << "Herror: " << endl;
+        //printMatrix(Hnum);
+        //cvShowImage("Herror",Hnum);
+        
+        //Update state
+        for (int i = 0; i < meas_size; i++)
+        {
+            tempn1->data.db[i]=predicted_meas_pts->data.db[i];
+        }
+
+        cout << "Measurement:\n";
+        printMatrix(z);
+        cout << "Predicted Measurement:\n";
+        printMatrix(tempn1);
+        cout << "Point nums:\t";
+        for (int i = 0; i < n_pts; i++)
+        {
+            cout << " " << point_nums[i];
+        }
+        cout << endl;
+        
+        
+        
+        
+        
+        
+        cvSub(z,tempn1,tempn1);
+        cout << "Meas error:\n";
+        printMatrix(tempn1);
+        //cout << "Meas error:\n";
+        //printMatrix(tempn1);
+        cvMatMul(K,tempn1,delx);
+        
+        //cout << "Kalman Gain:\n";
+        //printMatrix(K);
+        cout << "delx:\n";
+        printMatrix(delx);
+        //cvWaitKey(0);
+
+        //cout << "H:\n";
+        //printMatrix(H);
+        //cout << "K:\n";
+        //printMatrix(K);
+        cvAdd(x,delx,x);
+        
+                cout << "x:\n";
+        printMatrix(x);
+
+        while(x->data.db[3] > PI)
+            x->data.db[3] -= 2*PI;
+        while(x->data.db[3] < -PI)
+            x->data.db[3] += 2*PI;
+        while(x->data.db[4] > PI)
+            x->data.db[4] -= 2*PI;
+        while(x->data.db[4] < -PI)
+            x->data.db[4] += 2*PI;
+        while(x->data.db[5] > PI)
+            x->data.db[5] -= 2*PI;
+        while(x->data.db[5] < -PI)
+            x->data.db[5] += 2*PI;
+        
+        //Update covariance matrix P
+            cvTranspose(K,Kt);
+        cvMatMul(S,Kt,Kt);
+        cvMatMul(K,Kt,delP);
+        cvSub(P,delP,P);
+
+        
+        //Make sure P is pos def and not NaN
+        CvMat * Pt = newMatrix(P->rows,P->cols,CV_64FC1);
+
+        cvTranspose(P,Pt);
+        cvAddWeighted(P, 0.5, Pt, 0.5, 0.0, P);
+        //cvShowImage("P",P);
+        //cout << "P after update" << endl;
+        //cvWaitKey(0);
+        cvReleaseMat(&Pt);
+        
+        cvReleaseMat(&H);
+        cvReleaseMat(&Ht);
+        cvReleaseMat(&R);
+        cvReleaseMat(&S);
+        cvReleaseMat(&K);
+        cvReleaseMat(&Kt);
+        cvReleaseMat(&temp);
+        cvReleaseMat(&tempn);
+        cvReleaseMat(&tempn1);
+        cvReleaseMat(&tempn3);
+        cvReleaseMat(&delx);
+        cvReleaseMat(&delP);
+        cvReleaseMat(&Rotderiv);
+        cvReleaseMat(&Pt);
+        //cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
+        
+        num_curves_before_add = num_curves;
+        num_points_before_add = num_points;
+        
+	gettimeofday(&stop, NULL);
+	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
+		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
+        
+        
+        //cvShowImage("Pnew",P);
+        //cvWaitKey(0);
+}
+
 
 float KalmanFilter::getTime()
 {
@@ -1599,9 +1890,10 @@ void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> 
         }
         for (int i = 0; i < n_pts; i++)
         {
-            predictPointMeas(meas, x, point_nums[i], n);
+            predictPointMeas(meas, x, point_nums[i]);
             for (int k = 0; k < 4; k++)
-                pt1->data.db[n*8+3+4*i+k]=meas->data.db[k];
+                //pt1->data.db[n*8+3+4*i+k]=meas->data.db[k];
+                pt1->data.db[n*8+4*i+k]=meas->data.db[k];
         }
         x->data.db[j] -= JAC_EPS;
         
@@ -1614,9 +1906,10 @@ void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> 
         }
         for (int i = 0; i < n_pts; i++)
         {
-            predictPointMeas(meas, x, point_nums[i], n);
+            predictPointMeas(meas, x, point_nums[i]);
             for (int k = 0; k < 4; k++)
-                pt2->data.db[n*8+3+4*i+k]=meas->data.db[k];
+                //pt2->data.db[n*8+3+4*i+k]=meas->data.db[k];
+                pt2->data.db[n*8+4*i+k]=meas->data.db[k];
         }
         x->data.db[j] += JAC_EPS;
         cvSub(pt1,pt2,grad);
@@ -1628,7 +1921,7 @@ void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> 
     cvReleaseMat(&grad);
 }
 
-void KalmanFilter::predictPointMeas(CvMat * meas, CvMat * x, int point_num, int num_curves)
+void KalmanFilter::predictPointMeas(CvMat * meas, CvMat * x, int point_num)
 {
     CvMat * R_be = newMatrix(3,3,CV_64FC1);
     CvMat * xb = newMatrix(3,1,CV_64FC1);

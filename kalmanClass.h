@@ -65,6 +65,7 @@ public:
 	void AddNewCurve(CvMat * measurement, CvMat * A);
 	void AddNewPoints(double * measurements, int n_pts);
         void UpdateNCurvesAndPoints(CvMat * z, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts);
+        void UpdatePoints(double * point_meas, int * point_nums, int n_pts);
         void UpdateOOP(CvMat * z);
         bool CheckValidMeasurement(double phi, double theta, double z, int frames_since_good_measurement);
 	void GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvMat * A, CvMat * B, int num_curve1, int num_curve2);
@@ -89,7 +90,7 @@ public:
         
         void InitCurve(CvMat * curve, CvMat * z, CvMat * x, CvMat * A);
         void InitPoint(CvMat * pt,double * measurement,CvMat * x);
-        void predictPointMeas(CvMat * meas, CvMat * x, int point_num, int num_curves);
+        void predictPointMeas(CvMat * meas, CvMat * x, int point_num);
 	CvMat * A1;
 	CvMat * A2;
 	CvMat * A1l;

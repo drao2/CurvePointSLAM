@@ -1233,6 +1233,9 @@ int main(void)
                     }
 
                 }
+                else if (n_pts_existing > 0)
+                    EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
+                    
                 curves_updated_last.clear();
                     for (int i = 0; i < curves_to_update.size(); i++)
                         curves_updated_last.push_back(curves_to_update.at(i));
