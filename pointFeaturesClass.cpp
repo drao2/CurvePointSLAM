@@ -18,7 +18,7 @@ PointFeaturesClass::PointFeaturesClass()
         //srand(0);
 	//return;
         
-        optical_flow_window = cvSize(15,15);
+        optical_flow_window = cvSize(31,31);
         optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .0001 );
         
         num_pts_last = 0;

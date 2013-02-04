@@ -1249,6 +1249,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         
         //cout << "Kalman Gain:\n";
         //printMatrix(K);
+        cout << "K:\n";
+        printMatrix(K);
         cout << "delx:\n";
         printMatrix(delx);
         cvShowImage("K",K);
@@ -1459,8 +1461,8 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
 
         cvTranspose(H,Ht);
 
-        cvShowImage("H",H);
-        printMatrix(H);
+        //cvShowImage("H",H);
+        //printMatrix(H);
         
         //Calculate Kalman gain
         cvMatMul(P,Ht,temp);
@@ -1477,7 +1479,7 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         cvMatMul(P,K,K);
         
         //Delete gain entries related to states just added (VERY HACKY!)
-        /*for (int i = num_curves_before_add*8+ROBOT_STATE_SIZE; i < num_curves*8+ROBOT_STATE_SIZE; i++)
+        for (int i = num_curves_before_add*8+ROBOT_STATE_SIZE; i < num_curves*8+ROBOT_STATE_SIZE; i++)
         {
             for (int j = 0; j < K->cols; j++)
             {
@@ -1490,7 +1492,7 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
             {
                 cvmSet(K,i,j,0.0);
             }
-        }*/
+        }
         
         
         //cout << "K after P, P before calc" << endl;
@@ -1504,8 +1506,8 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         //cvmSet(Hnum,n*8+1,3,1.0);
         //cvmSet(Hnum,n*8+2,4,1.0);
         cout << "Hnum: " << endl;
+        cvSub(Hnum,H,Hnum);
         printMatrix(Hnum);
-        //cvSub(Hnum,H,Hnum);
         //cout << "Herror: " << endl;
         //printMatrix(Hnum);
         //cvShowImage("Herror",Hnum);
@@ -1541,8 +1543,11 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         
         //cout << "Kalman Gain:\n";
         //printMatrix(K);
+        cout << "K:\n";
+        printMatrix(K);
         cout << "delx:\n";
         printMatrix(delx);
+        cvShowImage("K",K);
         //cvWaitKey(0);
 
         //cout << "H:\n";
@@ -1861,9 +1866,9 @@ void KalmanFilter::printMatrix(CvMat * matrix)
         for (int j = 0; j < cols; j++)
         {
             if(matrix->data.db[cols*i+j] >= 0.0)
-                printf(" %.1f ",matrix->data.db[cols*i+j]);
+                printf(" %.2f ",matrix->data.db[cols*i+j]);
             else
-                printf("%.1f ",matrix->data.db[cols*i+j]);
+                printf("%.2f ",matrix->data.db[cols*i+j]);
         }
         cout << endl;
     }
