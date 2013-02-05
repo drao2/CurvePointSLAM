@@ -76,7 +76,7 @@
 #define CX1     320.95/2.0+1.0
 #define CY1     228.81/2.0
 
-#define POINT_OFFSET    ((CX1-CX0)/2.0)
+#define POINT_OFFSET    0.0
 
 
 

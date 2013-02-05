@@ -16,7 +16,7 @@
 #define ALPHA   1.0
 
 #ifdef QUAD
-        #define LEFT_IMAGE_LAG -2
+        #define LEFT_IMAGE_LAG 0
 #else
     #ifdef MEADOWBROOK
         #define LEFT_IMAGE_LAG 0
@@ -289,6 +289,25 @@ int main(void)
                     image_raw[1] = camera[1].get_frame();
             }
         }
+        
+        //CvVideoWriter *writer0 = cvCreateVideoWriter("out0.avi",CV_FOURCC('M', 'J', 'P', 'G'),10,cvSize(640,480));
+        //CvVideoWriter *writer1 = cvCreateVideoWriter("out1.avi",CV_FOURCC('M', 'J', 'P', 'G'),10,cvSize(640,480));
+        
+        //SAVE NEW AND FIXED VIDEO FILE
+        //while(1)
+        //{
+        //    for (int i = 0; i < NUM_CAMERAS; ++i)
+        //    {
+        //            image_raw[i] = camera[i].get_frame();
+        //    }
+        //    cvWriteFrame(writer0, image_raw[0]);
+        //    cvWriteFrame(writer1, image_raw[1]);
+        //}
+        
+        
+        
+        
+        
 
             cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
             cvRemap(image_raw[1], image_color[1], mx[1], my[1]);
@@ -440,6 +459,11 @@ int main(void)
                 //if (!first_time)
                     //EKF->PredictKF();
             }
+                            cvShowImage("Left",image_color[LEFT]);
+                cvShowImage("Right",image_color[RIGHT]);
+                cvShowImage("Last Left",last_image_color[LEFT]);
+                cvShowImage("Last Right",last_image_color[RIGHT]);
+                cvWaitKey(10);
             int n_pts_existing = 0;
             int n_pts_new = 0;
             double point_meas_existing[200];

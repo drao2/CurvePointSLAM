@@ -41,13 +41,13 @@
 #define WZ_COV 0.002
 #define PHI_MEAS_COV 0.1
 #define THETA_MEAS_COV 0.1
-#define Z_MEAS_COV 0.4
+#define Z_MEAS_COV 0.2
 
 #define JAC_EPS 1e-4    //Epsilon for numerical Jacobian
 
 #define DT  0.1
 
-#define VREAL 1.0
+#define VREAL 0.0
 
 #define ROBOT_STATE_SIZE  12
 
