@@ -52,7 +52,7 @@ FeatureDetector::~FeatureDetector()
 }
 
 
-void FeatureDetector::find_features(IplImage* img, IplImage* seg_img, int cam, CvRect roi, CvPoint2D32f * map_endpts)
+void FeatureDetector::find_features(IplImage* img, IplImage* seg_img, int cam, CvRect * roi, CvPoint2D32f * map_endpts)
 {
 	gettimeofday(&start, NULL);
 
@@ -80,12 +80,12 @@ void FeatureDetector::find_features(IplImage* img, IplImage* seg_img, int cam, C
 
 
         cvSetZero(edge);
-cvSetImageROI(img_s,cvRect(roi.x,EDGE_Y_CUTOFF,roi.width,roi.height-EDGE_Y_CUTOFF+roi.y));
-cvSetImageROI(img_v,cvRect(roi.x,EDGE_Y_CUTOFF,roi.width,roi.height-EDGE_Y_CUTOFF+roi.y));
+cvSetImageROI(img_s,cvRect(roi->x,EDGE_Y_CUTOFF,roi->width,roi->height-EDGE_Y_CUTOFF+roi->y));
+cvSetImageROI(img_v,cvRect(roi->x,EDGE_Y_CUTOFF,roi->width,roi->height-EDGE_Y_CUTOFF+roi->y));
         //cvSmooth(img_s,img_s,CV_GAUSSIAN,25,25,0);
         //cvSmooth(img_v,img_v,CV_GAUSSIAN,9,9,0);
-cvSetImageROI(edge,cvRect(roi.x,EDGE_Y_CUTOFF,roi.width,roi.height-EDGE_Y_CUTOFF+roi.y));
-cvSetImageROI(edge_search_region,cvRect(roi.x,EDGE_Y_CUTOFF,roi.width,roi.height-EDGE_Y_CUTOFF+roi.y));
+cvSetImageROI(edge,cvRect(roi->x,EDGE_Y_CUTOFF,roi->width,roi->height-EDGE_Y_CUTOFF+roi->y));
+cvSetImageROI(edge_search_region,cvRect(roi->x,EDGE_Y_CUTOFF,roi->width,roi->height-EDGE_Y_CUTOFF+roi->y));
  
         
 //cvSetImageROI(img_s,cvRect(0,EDGE_Y_CUTOFF,PIC_WIDTH,PIC_HEIGHT-EDGE_Y_CUTOFF));
@@ -203,11 +203,11 @@ cvResetImageROI(edge_search_region);
 #endif
 
 
-cvCopy(edge,edge_search_region,NULL);
-if (cam == 0)
-        createEdgeSequences(edge, edge_search_region, roi, map_endpts);
-else
-        createEdgeSequences(edge, edge_search_region, roi);
+        cvCopy(edge,edge_search_region,NULL);
+        if (cam == 0)
+                createEdgeSequences(edge, edge_search_region, *roi, map_endpts);
+        else
+                createEdgeSequences(edge, edge_search_region, *roi);
 
 
 

@@ -53,7 +53,7 @@ class FeatureDetector
 public:
 	FeatureDetector();
 	~FeatureDetector();
-	void find_features(IplImage* img, IplImage* seg_img, int cam, CvRect roi, CvPoint2D32f * map_endpts);
+	void find_features(IplImage* img, IplImage* seg_img, int cam, CvRect * roi, CvPoint2D32f * map_endpts);
 	void extract_neighbourhoods(CvPoint2D32f *points, int num_points, IplImage *img);
         void findFloodFillSeed(IplImage * edge_search_region, CvPoint * seed);
 	//void edge_following(IplImage *img);

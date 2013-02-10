@@ -309,12 +309,14 @@ void KalmanFilter::PredictKF(CvMat * R_predict, CvMat * t_predict)
     //x->data.db[3] += x->data.db[9]*DT;
     //x->data.db[4] += x->data.db[10]*DT;
     //x->data.db[5] += x->data.db[11]*DT;
-
     cvReleaseMat(&Pri);
 }
 
 void KalmanFilter::PredictKF()
 {
+    
+    //cvShowImage("P before predicting",P);
+    //cvWaitKey(0);
     CvMat * Pri = cvCreateMat(ROBOT_STATE_SIZE,num_curves*8,CV_64FC1);
 
     cvSetZero(Prr);
@@ -440,6 +442,9 @@ void KalmanFilter::PredictKF()
     x->data.db[4] += x->data.db[10]*DT;
     x->data.db[5] += x->data.db[11]*DT;
 
+
+    //cvShowImage("P after predicting",P);
+    //cvWaitKey(0);
     cvReleaseMat(&Pri);
 }
 
@@ -482,6 +487,11 @@ void KalmanFilter::AddFirstStates(CvMat * measurement)
 
 void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 {
+    //cvShowImage("P before adding curve",P);
+    //cvWaitKey(0);
+    //cout << "x before adding:\n";
+    //printMatrix(x);
+    
 	gettimeofday(&start, NULL);
         
         double Tx = x->data.db[0];
@@ -493,10 +503,10 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         cvSetZero(Rot);
         cvSetZero(Rotderiv);
         
-        CvMat * Gznum = newMatrix(8,8,CV_64FC1);
-        CvMat * Gxnum = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
-        getGxCurveNumeric(Gxnum,z,x,A);
-        getGzCurveNumeric(Gznum,z,x,A);
+        //CvMat * Gznum = newMatrix(8,8,CV_64FC1);
+        //CvMat * Gxnum = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
+        //getGxCurveNumeric(Gxnum,z,x,A);
+        //getGzCurveNumeric(Gznum,z,x,A);
         
         //Determine rot matrix
         for (int i = 0; i < 4; i++)
@@ -587,8 +597,6 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         cvSetZero(Pcurrent8);
         cvSetZero(xcurrent8);
         cvSetZero(H);
-        cvSetZero(Hinv);
-
 
 
         
@@ -715,11 +723,11 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
                 }
             }
         }
+    //cvShowImage("P after adding curve",P);
+    //cvWaitKey(0);
 
         cvReleaseMat(&Pri);
         cvReleaseMat(&PN1i);
-        cvReleaseMat(&Pcopy);
-        cvReleaseMat(&xcopy);
         cvReleaseMat(&PN1N1);
         cvReleaseMat(&PN1r);
         cvReleaseMat(&ones);
@@ -729,12 +737,16 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 	gettimeofday(&stop, NULL);
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
+    //cout << "x after adding:\n";
+    //printMatrix(x);
 
 
 }
 
 void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 {
+    //cvShowImage("P before adding points",P);
+    //cvWaitKey(0);
     gettimeofday(&start, NULL);
     if (n_pts)
     {        
@@ -901,8 +913,6 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
         
         cvReleaseMat(&Pri);
         cvReleaseMat(&PN1i);
-        cvReleaseMat(&Pcopy);
-        cvReleaseMat(&xcopy);
         cvReleaseMat(&PN1N1);
         cvReleaseMat(&PN1r);
         cvReleaseMat(&PrrT);
@@ -913,6 +923,8 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
         cvReleaseMat(&temp33);
         cvReleaseMat(&temp31);
     }
+    //cvShowImage("P after adding points",P);
+    //cvWaitKey(0);
 	gettimeofday(&stop, NULL);
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
@@ -920,6 +932,8 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 
 void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)
 {
+    //cvShowImage("P before updating",P);
+    //cvWaitKey(0);
         cout << "Num curves to update: " << n << endl;
 	gettimeofday(&start, NULL);
         
@@ -927,7 +941,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         int pt_meas_size = n_pts*4;
         int meas_size = pt_meas_size+curve_meas_size;
         int existing_size = P->rows;
-        
+        cout << "Existing size = " << existing_size << ", Num curves = " << num_curves << ", Num points = " << num_points << endl;
         cvSetZero(Rot);
 
         CvMat * z = newMatrix(meas_size, 1, CV_64FC1);
@@ -942,6 +956,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         CvMat * Ht = newMatrix(existing_size, meas_size, CV_64FC1);
         CvMat * K = newMatrix(existing_size, meas_size, CV_64FC1);
         CvMat * Kt = newMatrix(meas_size, existing_size, CV_64FC1);
+        CvMat * Kt2 = newMatrix(meas_size, existing_size, CV_64FC1);
         CvMat * temp = newMatrix(existing_size, meas_size, CV_64FC1);
         CvMat * delx = newMatrix(existing_size, 1, CV_64FC1);
         CvMat * tempn = newMatrix(meas_size, meas_size, CV_64FC1);
@@ -952,20 +967,27 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 	CvMat * S = newMatrix(meas_size,meas_size,CV_64FC1);
 	CvMat * invcheck = newMatrix(meas_size,meas_size,CV_64FC1);
         CvMat * Rotderiv = newMatrix(8,8,CV_64FC1);
-        CvMat * predicted_meas_pts = newMatrix(pt_meas_size+1,1,CV_64FC1);
+        CvMat * predicted_meas_pts = newMatrix(pt_meas_size+1,1,CV_64FC1); //+1 is to ensure we don't allocate non-zero
         
+        cout << "Pointers: " << &(Kt->data.db[0]) << " " << &(S->data.db[0]) << endl;
         //Set meas noise
         for (int i = 0; i < curve_meas_size; i++)
         {
             R->data.db[(meas_size+1)*i] = MEAS_COV;
         }
+            //cvShowImage("R",R);
+            //cvWaitKey(0);
             R->data.db[(meas_size+1)*(n*8)] = pow(Z_MEAS_COV,2.0);
             R->data.db[(meas_size+1)*(n*8+1)] = pow(PHI_MEAS_COV,2.0);
             R->data.db[(meas_size+1)*(n*8+2)] = pow(THETA_MEAS_COV,2.0);
+            //cvShowImage("R",R);
+            //cvWaitKey(0);
         for (int i = curve_meas_size; i < meas_size; i++)
         {
             R->data.db[(meas_size+1)*i] = pow(PT_MEAS_COV,2.0);
         }
+            //cvShowImage("R",R);
+            //cvWaitKey(0);
 
         cvSetZero(temp8);
         cvSetZero(temp81);
@@ -996,7 +1018,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             cvmSet(Rotderiv,i+4,i,-cos(psi));
             cvmSet(Rotderiv,i,i+4,cos(psi));
         }
-
+        
+        
         //Determine H
         
         //First the curve measurement terms
@@ -1059,6 +1082,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cout << "x before:\n";
         //printMatrix(x);
         
+            cout << "1\n";
         if (n_pts)
         {
             CvMat * dzdxb = newMatrix(4,3,CV_64FC1);
@@ -1079,8 +1103,6 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             Tbe->data.db[0] = x->data.db[0];
             Tbe->data.db[1] = x->data.db[1];
             Tbe->data.db[2] = x->data.db[2];
-
-
             //Point measurement terms
             for (int k = 0; k < n_pts; k++)
             {
@@ -1136,19 +1158,24 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvShowImage("H",H);
         //cvWaitKey(0);
             }
+                cvReleaseMat(&dzdxb);
+                cvReleaseMat(&temp43);
+                cvReleaseMat(&temp41);
+                cvReleaseMat(&temp31);
+                cvReleaseMat(&xe);
+                cvReleaseMat(&xb);
+                cvReleaseMat(&Tbe);
+                cvReleaseMat(&R_be);
+                cvReleaseMat(&R_be_derivs[0]);
+                cvReleaseMat(&R_be_derivs[1]);
+                cvReleaseMat(&R_be_derivs[2]);
         }
+            cout << "2\n";
         //cvShowImage("H",H);
         //cvWaitKey(0);
-        //Pose derivs... ??!?
-        //for (int i = 0; i < H->rows; i++)
-        //{
-        //    for (int j = 0; j < 6; j++)
-        //    {
-        //        cvmSet( H, i, j+6, cvmGet( H, i, j)*DT);
-        //    }
-        //}
 
         cvTranspose(H,Ht);
+        //cvShowImage("P before update",P);
 
         //cout << "K before calc" << endl;
         //cvShowImage("K",K);
@@ -1162,14 +1189,14 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             //cvWaitKey(0);
         cvInvert(S,tempn,CV_SVD);
         
-        cvMatMul(S,tempn,invcheck);
-        for (int i = 0; i <invcheck->rows; i++)
-            cvmSet(invcheck,i,i,cvmGet(invcheck,i,i)-1.0);
-        cout << "Inv check 1: " << cvNorm(invcheck);
-        cvMatMul(tempn,S,invcheck);
-        for (int i = 0; i <invcheck->rows; i++)
-            cvmSet(invcheck,i,i,cvmGet(invcheck,i,i)-1.0);
-        cout << "\tInv check 2: " << cvNorm(invcheck) << endl;
+        //cvMatMul(S,tempn,invcheck);
+        //for (int i = 0; i <invcheck->rows; i++)
+        //    cvmSet(invcheck,i,i,cvmGet(invcheck,i,i)-1.0);
+        //cout << "Inv check 1: " << cvNorm(invcheck);
+        //cvMatMul(tempn,S,invcheck);
+        //for (int i = 0; i <invcheck->rows; i++)
+        //    cvmSet(invcheck,i,i,cvmGet(invcheck,i,i)-1.0);
+        //cout << "\tInv check 2: " << cvNorm(invcheck) << endl;
         
             //cvShowImage("tempn",tempn);
             //cvWaitKey(0);
@@ -1178,6 +1205,11 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvShowImage("P",P);
         //cout << "K first round, P before calc" << endl;
         //cvWaitKey(0);
+        //cvShowImage("Innovation",tempn);
+        //cvShowImage("Ht",Ht);
+        //cvShowImage("K before",K);
+        //cvShowImage("P",P);
+        
         cvMatMul(P,K,K);
         
         //Delete gain entries related to states just added (VERY HACKY!)
@@ -1205,12 +1237,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvmSet(Hnum,n*8,2,1.0);
         //cvmSet(Hnum,n*8+1,3,1.0);
         //cvmSet(Hnum,n*8+2,4,1.0);
-        //cout << "Hnum: " << endl;
-        //printMatrix(Hnum);
+        //cvShowImage("Hnum",Hnum);
         //cvSub(Hnum,H,Hnum);
-        //cout << "Herror: " << endl;
-        //printMatrix(Hnum);
-        //cvShowImage("Herror",Hnum);
+        //cout << "HerrorNorm = " << cvNorm(Hnum) << endl;
         
         //Update state
         for (int i = 0; i < n; i++)
@@ -1226,12 +1255,10 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         {
             tempn1->data.db[i+curve_meas_size]=predicted_meas_pts->data.db[i];
         }
-
-        /*cout << "Measurement:\n";
-        printMatrix(z);
-        cout << "Predicted Measurement:\n";
-        printMatrix(tempn1);
-        cout << "Curve nums:\t";
+        
+        //cout << "Measurement:\n";
+        //printMatrix(z);
+        /*cout << "Curve nums:\t";
         for (int i = 0; i < n; i++)
         {
             cout << " " << curve_num->at(i);
@@ -1273,21 +1300,26 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         
         
         
-        
-        
         cvSub(z,tempn1,tempn1);
+        //cout << "Meas Error:\n";
+        //printMatrix(tempn1);
+        
+        
         //cout << "Meas error:\n";
         //printMatrix(tempn1);
         cvMatMul(K,tempn1,delx);
         
-        cout << "H:\n";
-        printMatrix(H);
-        cout << "Kalman Gain:\n";
-        printMatrix(K);
-        cout << "delx:\n";
-        printMatrix(delx);
-        cvShowImage("K",K);
-        cvShowImage("P",P);
+        //printMatrix(K);
+
+        //cvShowImage("K after",K);
+        //cout << "H:\n";
+        //printMatrix(H);
+        //cout << "Kalman Gain:\n";
+        //printMatrix(K);
+        //cout << "delx:\n";
+        //printMatrix(delx);
+        //cvShowImage("K",K);
+        //cvShowImage("P",P);
         //cvWaitKey(0);
 
         //cout << "H:\n";
@@ -1296,8 +1328,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //printMatrix(K);
         cvAdd(x,delx,x);
         
-                cout << "x:\n";
-        printMatrix(x);
+        //cout << "x:\n";
+        //printMatrix(x);
 
         while(x->data.db[3] > PI)
             x->data.db[3] -= 2*PI;
@@ -1312,11 +1344,20 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         while(x->data.db[5] < -PI)
             x->data.db[5] += 2*PI;
         
+        //cout << "1\n";
         //Update covariance matrix P
             cvTranspose(K,Kt);
-        cvMatMul(S,Kt,Kt);
-        cvMatMul(K,Kt,delP);
+        cout << "Pointers again: " << &(Kt->data.db[0]) << " " << &(S->data.db[0]) << endl;
+        
+        //cout << S->rows << " " << S->cols << " " << Kt->rows << " " << Kt->cols << endl;
+        cvMatMul(S,Kt,Kt2);
+        cout << "Pointers again: " << &(Kt->data.db[0]) << " " << &(S->data.db[0]) << endl;
+        cvMatMul(K,Kt2,delP);
+        cout << "Pointers again: " << &(Kt->data.db[0]) << " " << &(S->data.db[0]) << endl;
+        //cout << "4\n";
         cvSub(P,delP,P);
+        //cout << "5\n";
+        cout << "Pointers again: " << &(Kt->data.db[0]) << " " << &(S->data.db[0]) << endl;
 
         
         //Make sure P is pos def and not NaN
@@ -1327,6 +1368,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvShowImage("P",P);
         //cout << "P after update" << endl;
         //cvWaitKey(0);
+        cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
         cvReleaseMat(&Pt);
         
         cvReleaseMat(&H);
@@ -1334,16 +1376,22 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvReleaseMat(&R);
         cvReleaseMat(&S);
         cvReleaseMat(&K);
+        cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
         cvReleaseMat(&Kt);
-        cvReleaseMat(&temp);
-        cvReleaseMat(&tempn);
-        cvReleaseMat(&tempn1);
-        cvReleaseMat(&tempn3);
-        cvReleaseMat(&delx);
+        cvReleaseMat(&Kt2);
+        cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
+        //cvReleaseMat(&temp);
+        //cvReleaseMat(&tempn);
+        //cvReleaseMat(&tempn1);
+        //cvReleaseMat(&tempn3);
+        //cvReleaseMat(&delx);
         cvReleaseMat(&delP);
-        cvReleaseMat(&Rotderiv);
-        cvReleaseMat(&Pt);
-        //cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
+        //cvReleaseMat(&Rotderiv);
+        cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
+        
+        
+    //cvShowImage("P after updating",P);
+    //cvWaitKey(0);
         
         num_curves_before_add = num_curves;
         num_points_before_add = num_points;
@@ -1351,7 +1399,6 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 	gettimeofday(&stop, NULL);
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
-        
         
         //cvShowImage("Pnew",P);
         //cvWaitKey(0);
@@ -1511,7 +1558,7 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         //cvShowImage("P",P);
         //cvWaitKey(0);
         cvMatMul(P,K,K);
-        
+
         //Delete gain entries related to states just added (VERY HACKY!)
         for (int i = num_curves_before_add*8+ROBOT_STATE_SIZE; i < num_curves*8+ROBOT_STATE_SIZE; i++)
         {
@@ -1621,7 +1668,7 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         //cvShowImage("P",P);
         //cout << "P after update" << endl;
         //cvWaitKey(0);
-        cvReleaseMat(&Pt);
+        /*cvReleaseMat(&Pt);
         
         cvReleaseMat(&H);
         cvReleaseMat(&Ht);
@@ -1635,8 +1682,7 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         cvReleaseMat(&tempn3);
         cvReleaseMat(&delx);
         cvReleaseMat(&delP);
-        cvReleaseMat(&Rotderiv);
-        cvReleaseMat(&Pt);
+        cvReleaseMat(&Rotderiv);*/
         //cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
         
         num_curves_before_add = num_curves;
@@ -1647,10 +1693,10 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
         
         
+    cout << "End of pts\n";
         //cvShowImage("Pnew",P);
         //cvWaitKey(0);
 }
-
 
 float KalmanFilter::getTime()
 {
@@ -1683,7 +1729,6 @@ void KalmanFilter::GetSplitMatrices(double t, CvMat * A1, CvMat * A2)
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
-
 
 void KalmanFilter::GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvMat * A, CvMat * B, int num_curve1, int num_curve2)
 {
@@ -1787,16 +1832,12 @@ void KalmanFilter::GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvM
     
 }
 
-
 CvMat * KalmanFilter::newMatrix(int rows, int cols, int type)
 {
     CvMat * matrix = cvCreateMat(rows,cols,type);
     cvSetZero(matrix);
     return matrix;
 }
-
-
-
 
 bool KalmanFilter::CheckValidMeasurement(double theta, double phi, double z, int frames_since_good_measurement)
 {
@@ -1814,7 +1855,6 @@ bool KalmanFilter::CheckValidMeasurement(double theta, double phi, double z, int
     return true;
 
 }
-
 
 void KalmanFilter::get_Reb_derivs(double phi, double theta, double psi, CvMat * R_eb_phi, CvMat * R_eb_theta, CvMat * R_eb_psi)
 {
@@ -1882,7 +1922,6 @@ void KalmanFilter::get_Rbe_derivs(double phi, double theta, double psi, CvMat * 
         R_be_psi->data.db[8] = 0.0;
 }
 
-
 void KalmanFilter::printMatrix(CvMat * matrix)
 {
     int cols = matrix->cols;
@@ -1909,10 +1948,9 @@ void KalmanFilter::printMatrix(CvMat * matrix)
     cout << endl;
 }
 
-
-
 void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> * A, vector<int> * curve_num, int * point_nums, int n_pts)
 {  
+        cout << "3\n";
     CvMat * pt1 = newMatrix(H->rows,1,CV_64FC1);      
     CvMat * pt2 = newMatrix(H->rows,1,CV_64FC1);
     CvMat * grad = newMatrix(H->rows,1,CV_64FC1);
@@ -1931,8 +1969,7 @@ void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> 
         {
             predictPointMeas(meas, x, point_nums[i]);
             for (int k = 0; k < 4; k++)
-                //pt1->data.db[n*8+3+4*i+k]=meas->data.db[k];
-                pt1->data.db[n*8+4*i+k]=meas->data.db[k];
+                pt1->data.db[n*8+3+4*i+k]=meas->data.db[k];
         }
         x->data.db[j] -= JAC_EPS;
         
@@ -1947,8 +1984,7 @@ void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> 
         {
             predictPointMeas(meas, x, point_nums[i]);
             for (int k = 0; k < 4; k++)
-                //pt2->data.db[n*8+3+4*i+k]=meas->data.db[k];
-                pt2->data.db[n*8+4*i+k]=meas->data.db[k];
+                pt2->data.db[n*8+3+4*i+k]=meas->data.db[k];
         }
         x->data.db[j] += JAC_EPS;
         cvSub(pt1,pt2,grad);
@@ -1958,6 +1994,7 @@ void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> 
     cvReleaseMat(&pt1);
     cvReleaseMat(&pt2);
     cvReleaseMat(&grad);
+        cout << "4\n";
 }
 
 void KalmanFilter::predictPointMeas(CvMat * meas, CvMat * x, int point_num)
@@ -2043,7 +2080,6 @@ void KalmanFilter::InitPoint(CvMat * pt,double * measurement,CvMat * x)
         pt->data.db[j] += x->data.db[j];   //xe = R_eb*xb+T_eb, T_eb = x[0:2]
 
 }
-
 
 void KalmanFilter::getGxCurveNumeric(CvMat * Gx,CvMat * z,CvMat * x, CvMat * A)
 {

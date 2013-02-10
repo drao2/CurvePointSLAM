@@ -413,9 +413,11 @@ int main(void)
         CvMat * t_12 = cvCreateMat(3,1,CV_64FC1);
         cvSetZero(t_12);
        
-
+        int count = 0;
         while(1)
 	{
+            count++;
+            cout << count << endl;
             if(valid_measurement)
                 frames_since_good_measurement = 1;
             else
@@ -487,9 +489,6 @@ int main(void)
                 EKF->PredictKF();
             }
             
-            //Add any new point measurements we've made
-            EKF->AddNewPoints(&point_meas_new[0], n_pts_new);
-            
             //cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
             //cvRemap(image_raw[1], image_color[1], mx[1], my[1]);
 
@@ -500,7 +499,7 @@ int main(void)
             CvPoint2D32f map_endpts[] = {curveMatcher[0].map_endpt_tracked,curveMatcher[1].map_endpt_tracked};
             for (int i = 0; i < NUM_CAMERAS; ++i)
             {
-                    features[i].find_features(image_raw[i],seg[i],i,roi[i],&map_endpts[0]);
+                    features[i].find_features(image_raw[i],seg[i],i,&(roi[i]),&map_endpts[0]);
                     curveMatcher[i].map_endpt_tracked = map_endpts[i];
             }
 
@@ -1071,11 +1070,13 @@ int main(void)
                                 z->data.db[i] = params[2*i];
                                 z->data.db[i+4] = params[2*i+1];
                             }
-
+                            //if (!n_pts_existing)
+                            {
                             EKF->AddNewCurve(z8,I4);
                             state_limits.push_back(1.0);
                             left_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
+                            }
                             break;
                         }
                         case ONLY_UPDATE_ONE_STATE:
@@ -1123,10 +1124,13 @@ int main(void)
                             //Add second curve as new state
                             for (int i = 0; i < 8; i++)
                                 z8->data.db[i] = z_left->data.db[i+8];
+                            //if (!n_pts_existing)
+                            {
                             EKF->AddNewCurve(z8,B1l);
                             state_limits.push_back(t_splitL[2]);
                             left_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
+                            }
 
                             break;
                         }
@@ -1166,10 +1170,13 @@ int main(void)
                                 z->data.db[i+12] = params[2*(i+4)+1];
                             }
 
+                            //if (!n_pts_existing)
+                            {
                             EKF->AddNewCurve(z8,I4);
                             state_limits.push_back(1.0);
                             right_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
+                            }
                             break;
                         }
                         case ONLY_UPDATE_ONE_STATE:
@@ -1217,10 +1224,14 @@ int main(void)
                             //Add second curve as new state
                             for (int i = 0; i < 8; i++)
                                 z8->data.db[i] = z_right->data.db[i+8];
-                            EKF->AddNewCurve(z8,B1r);
+                            
+                            //if (!n_pts_existing)
+                            {
+                                EKF->AddNewCurve(z8,B1r);
                             state_limits.push_back(t_splitR[2]);
                             right_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
+                            }
 
                             break;
                         }
@@ -1253,13 +1264,17 @@ int main(void)
                         z->data.db[num_curves_to_update*8] = height;
                         z->data.db[num_curves_to_update*8+1] = phi;
                         z->data.db[num_curves_to_update*8+2] = theta;
+                        //n_pts_existing = 0;
                         EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],n_pts_existing);
+                        //EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
+        cout << "rty" << endl;
                     }
 
                 }
                 else if (n_pts_existing > 0)
                     EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     
+        cout << "qwe" << endl;
                 curves_updated_last.clear();
                     for (int i = 0; i < curves_to_update.size(); i++)
                         curves_updated_last.push_back(curves_to_update.at(i));
@@ -1280,6 +1295,12 @@ int main(void)
             }
             else
                 valid_measurement = false;
+            
+            
+            
+            //Add any new point measurements we've made
+            EKF->AddNewPoints(&point_meas_new[0], n_pts_new);
+        cout << "uiop" << endl;
             
             //cout << edges_detected << " " << valid_measurement << endl;
 
@@ -1326,7 +1347,7 @@ int main(void)
 
             //cvShowImage("Left",image_color[LEFT]);
             //cvShowImage("Right",image_color[RIGHT]);
-            cvWaitKey(0);
+            cvWaitKey(10);
         }
 
 	return 0;
