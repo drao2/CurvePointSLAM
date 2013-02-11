@@ -1264,32 +1264,31 @@ int main(void)
                         z->data.db[num_curves_to_update*8] = height;
                         z->data.db[num_curves_to_update*8+1] = phi;
                         z->data.db[num_curves_to_update*8+2] = theta;
-                        //n_pts_existing = 0;
+                        //cout << "n pts existing: " << n_pts_existing << endl;
+                        //n_pts_existing = MIN(10,n_pts_existing);
                         EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],n_pts_existing);
                         //EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
-        cout << "rty" << endl;
                     }
 
                 }
                 else if (n_pts_existing > 0)
                     EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     
-        cout << "qwe" << endl;
                 curves_updated_last.clear();
-                    for (int i = 0; i < curves_to_update.size(); i++)
-                        curves_updated_last.push_back(curves_to_update.at(i));
-                    /*cout << "Left curve nums: ";
-                    for (int i = 0; i < left_curve_nums.size(); i++)
-                        cout << left_curve_nums.at(i) << " ";
-                    cout << endl;
-                    cout << "Right curve nums: ";
-                    for (int i = 0; i < right_curve_nums.size(); i++)
-                        cout << right_curve_nums.at(i) << " ";
-                    cout << endl;
-                    cout << "Curves to update: ";
-                    for (int i = 0; i < curves_to_update.size(); i++)
-                        cout << curves_to_update[i] << " ";
-                    cout << endl;*/
+                for (int i = 0; i < curves_to_update.size(); i++)
+                    curves_updated_last.push_back(curves_to_update.at(i));
+                /*cout << "Left curve nums: ";
+                for (int i = 0; i < left_curve_nums.size(); i++)
+                    cout << left_curve_nums.at(i) << " ";
+                cout << endl;
+                cout << "Right curve nums: ";
+                for (int i = 0; i < right_curve_nums.size(); i++)
+                    cout << right_curve_nums.at(i) << " ";
+                cout << endl;
+                cout << "Curves to update: ";
+                for (int i = 0; i < curves_to_update.size(); i++)
+                    cout << curves_to_update[i] << " ";
+                cout << endl;*/
 
 
             }
