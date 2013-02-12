@@ -317,7 +317,7 @@ void KalmanFilter::PredictKF()
     
     //cvShowImage("P before predicting",P);
     //cvWaitKey(0);
-    CvMat * Pri = cvCreateMat(ROBOT_STATE_SIZE,num_curves*8,CV_64FC1);
+    CvMat * Pri = cvCreateMat(ROBOT_STATE_SIZE,num_curves*8+num_points*3,CV_64FC1);
 
     cvSetZero(Prr);
     cvSetZero(Pri);
@@ -401,7 +401,7 @@ void KalmanFilter::PredictKF()
         {
             cvmSet(Prr,i,j,cvmGet(P,i,j));
         }
-        for (int j = ROBOT_STATE_SIZE; j < num_curves*8+ROBOT_STATE_SIZE; j++)
+        for (int j = ROBOT_STATE_SIZE; j < num_curves*8+num_points*3+ROBOT_STATE_SIZE; j++)
         {
             cvmSet(Pri,i,j-ROBOT_STATE_SIZE,cvmGet(P,i,j));
         }
@@ -425,7 +425,7 @@ void KalmanFilter::PredictKF()
         {
             cvmSet(P,i,j,cvmGet(Prr,i,j));
         }
-        for (int j = ROBOT_STATE_SIZE; j < num_curves*8+ROBOT_STATE_SIZE; j++)
+        for (int j = ROBOT_STATE_SIZE; j < num_curves*8+num_points*3+ROBOT_STATE_SIZE; j++)
         {
             cvmSet(P,i,j,cvmGet(Pri,i,j-ROBOT_STATE_SIZE));
             cvmSet(P,j,i,cvmGet(Pri,i,j-ROBOT_STATE_SIZE));
