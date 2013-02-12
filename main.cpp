@@ -1299,7 +1299,6 @@ int main(void)
             
             //Add any new point measurements we've made
             EKF->AddNewPoints(&point_meas_new[0], n_pts_new);
-        cout << "uiop" << endl;
             
             //cout << edges_detected << " " << valid_measurement << endl;
 
@@ -1312,7 +1311,14 @@ int main(void)
             //Print robot pose
             //cout << "X: " << state_current->data.db[0] << "\n" << "Y: " << state_current->data.db[1] << "\n" << "Z: " << state_current->data.db[2] << "\n"  << "Pitch: " << state_current->data.db[4]*180.0/PI << "\n" << "Roll: " << state_current->data.db[3]*180.0/PI << "\n" << "Yaw: " << state_current->data.db[5]*180.0/PI << "\n";
 #endif
-
+            cout << "Curve inds:\n";
+            for (int i = 0; i < EKF->curve_inds.size(); i++)
+                cout << EKF->curve_inds.at(i) << " ";
+            cout << endl;
+            cout << "Point inds:\n";
+            for (int i = 0; i < EKF->point_inds.size(); i++)
+                cout << EKF->point_inds.at(i) << " ";
+            cout << endl;
 
             int frameTime = camera[0].getTime()+camera[1].getTime();
             int featureTime = features[0].getTime()+features[1].getTime();

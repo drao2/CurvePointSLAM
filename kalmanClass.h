@@ -185,6 +185,12 @@ public:
 	float elapsedTime;
 
         double last_position[3];
+        
+        
+        //These variables denote where in the state vector each curve and point is
+        //Each curve is 8x1, point is 3x1
+        std::vector<int> curve_inds;
+        std::vector<int> point_inds;
 };
 
 	
