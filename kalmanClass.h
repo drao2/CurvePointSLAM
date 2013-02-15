@@ -30,7 +30,7 @@
 #define Z_MEAS_COV 0.4
 */
 
-#define MEAS_COV 100.0 //Innovation for curve cp meas (in m)
+#define MEAS_COV 10.0 //Innovation for curve cp meas (in m)
 #define PT_MEAS_COV 1.0 //Innovation for pt meas (in pixels)
 
 #define VX_COV 0.05

@@ -100,7 +100,6 @@ KalmanFilter::KalmanFilter()
         temp88 = newMatrix(8,8,CV_64FC1);
         Prr = newMatrix(ROBOT_STATE_SIZE,ROBOT_STATE_SIZE,CV_64FC1);
 
-
         // R is diagonal matrix with measurement covariance
         for (int i = 0; i < 8; i++)
         {
@@ -326,8 +325,8 @@ void KalmanFilter::PredictKF()
     //cout << "Y = " << x->data.db[1] << endl;
     //cout << "Wz = " << x->data.db[11] << endl;
     
-    double phi = 0.0;//x->data.db[3];
-    double theta = 0.0;//x->data.db[4];
+    double phi = x->data.db[3];
+    double theta = x->data.db[4];
     double psi = x->data.db[5];
     
     Reb->data.db[0] = cos(psi)*cos(theta);
@@ -363,27 +362,29 @@ void KalmanFilter::PredictKF()
     {
         for (int j = 0; j < 3; j++)
         {
-            Qpose->data.db[ROBOT_STATE_SIZE*i+j] = pow(DT,3.0)*temp33->data.db[3*i+j];
-            Qpose->data.db[ROBOT_STATE_SIZE*i+j+6] = pow(DT,2.0)*temp33->data.db[3*i+j];
-            Qpose->data.db[ROBOT_STATE_SIZE*(j+6)+i] = pow(DT,2.0)*temp33->data.db[3*i+j];
-            Qpose->data.db[ROBOT_STATE_SIZE*(i+6)+(j+6)] = pow(DT,1.0)*temp33->data.db[3*i+j];
+            cvmSet(Qpose,i,j, pow(DT,3.0)*cvmGet(temp33,i,j));
+            cvmSet(Qpose,i,j+6, pow(DT,2.0)*cvmGet(temp33,i,j));
+            cvmSet(Qpose,j+6,i, pow(DT,2.0)*cvmGet(temp33,i,j));
+            cvmSet(Qpose,i+6,j+6, pow(DT,1.0)*cvmGet(temp33,i,j));
         }
     }
+    cvShowImage("Q",Qpose);
+    //cvWaitKey(0);
     
     cvSetZero(temp33);
-    temp33->data.db[0] = pow(WX_COV,2.0);
-    temp33->data.db[4] = pow(WY_COV,2.0);
-    temp33->data.db[8] = pow(WZ_COV,2.0);
+    cvmSet(temp33,0,0, pow(WX_COV,2.0));
+    cvmSet(temp33,1,1, pow(WY_COV,2.0));
+    cvmSet(temp33,2,2, pow(WZ_COV,2.0));
     
     //Cov(Psi,omega) = ...
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
         {
-            Qpose->data.db[12*(i+3)+(j+3)] = pow(DT,3.0)*temp33->data.db[3*i+j];
-            Qpose->data.db[12*(i+3)+(j+9)] = pow(DT,2.0)*temp33->data.db[3*i+j];
-            Qpose->data.db[12*(j+9)+(i+3)] = pow(DT,2.0)*temp33->data.db[3*i+j];
-            Qpose->data.db[12*(i+9)+(j+9)] = pow(DT,1.0)*temp33->data.db[3*i+j];
+            cvmSet(Qpose,i+3,j+3, pow(DT,3.0)*cvmGet(temp33,i,j));
+            cvmSet(Qpose,i+3,j+9, pow(DT,2.0)*cvmGet(temp33,i,j));
+            cvmSet(Qpose,j+9,i+3, pow(DT,2.0)*cvmGet(temp33,i,j));
+            cvmSet(Qpose,i+9,j+9, pow(DT,1.0)*cvmGet(temp33,i,j));
         }
     }
     
@@ -453,9 +454,10 @@ void KalmanFilter::AddFirstStates(CvMat * measurement)
 {
     cvSetZero(P);
     cvSetZero(x);
+    
         for (int i = 0; i < 16; i++)
         {
-            cvmSet(P, i+ROBOT_STATE_SIZE, i+ROBOT_STATE_SIZE, R1->data.db[9*(i%8)]);
+            cvmSet(P, i+ROBOT_STATE_SIZE, i+ROBOT_STATE_SIZE, pow(MEAS_COV,2.0));
             x->data.db[i+ROBOT_STATE_SIZE] = measurement->data.db[i];
         }
     //z, phi and theta
@@ -566,7 +568,7 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
             {
                 cvmSet(P,i,j,cvmGet(Pcopy,i,j));
             }
-            x->data.db[i] = xcopy->data.db[i];
+            cvmSet(x,i,0, cvmGet(xcopy,i,0));
         }
         
         if(num_points)
@@ -589,7 +591,7 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
             {
                 for (int j = (num_curves-1)*8+ROBOT_STATE_SIZE; j < existing_size; j++)
                     cvmSet(P,i+8,j+8,cvmGet(Pcopy,i,j));
-                x->data.db[i+8] = xcopy->data.db[i];
+                cvmSet(x,i+8,0, cvmGet(xcopy,i,0));
             }
         
         }
@@ -689,11 +691,11 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 
         for (int i = 0; i < 8; i++)
         {
-            x->data.db[(num_curves-1)*8+i+ROBOT_STATE_SIZE] = xcurrent8->data.db[i];
+            cvmSet(x,(num_curves-1)*8+i+ROBOT_STATE_SIZE,0, cvmGet(xcurrent8,i,0));
             
             for (int j = 0; j < 8; j++)
             {
-                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+(num_curves-1)*8+ROBOT_STATE_SIZE, PN1N1->data.db[8*i+j] );
+                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1N1,i,j) );
             }
             
             for (int j = 0; j < (num_curves-1)*8; j++)
@@ -846,7 +848,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
             xb->data.db[2] = 0.5*BASELINE/(xl-xr)*(yl+yr-2.0*CY);
             cvMatMul(R_eb,xb,temp31);
             for (int j= 0; j < 3; j++)
-                x->data.db[existing_size + n*3 + j] = temp31->data.db[j] + x->data.db[j];   //xe = R_eb*xb+T_eb, T_eb = x[0:2]
+                cvmSet(x,existing_size + n*3 + j,0,temp31->data.db[j] + x->data.db[j]);          //xe = R_eb*xb+T_eb, T_eb = x[0:2]
             
             point_inds.push_back(existing_size + n*3);
             //Find Gx
@@ -907,7 +909,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    cvmSet( P, i+existing_size+n*3, j+existing_size+n*3, PN1N1->data.db[3*i+j] );
+                    cvmSet( P, i+existing_size+n*3, j+existing_size+n*3, cvmGet(PN1N1,i,j) );
                 }
                 for (int j = 0; j < existing_size-ROBOT_STATE_SIZE; j++)
                 {
@@ -944,6 +946,8 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
     cout << "Exiting AddNewPoints" << endl;
+    printMatrix(x);
+    cvWaitKey(0);
 }
 
 void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)
@@ -963,9 +967,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 
         CvMat * z = newMatrix(meas_size, 1, CV_64FC1);
         for (int i = 0; i < curve_meas_size; i++)
-            z->data.db[i] = measurement->data.db[i];
+            cvmSet(z,i,0, cvmGet(measurement,i,0));
         for (int i = 0; i < pt_meas_size; i++)
-            z->data.db[i+curve_meas_size] = point_meas[i];
+            cvmSet(z,i+curve_meas_size,0, point_meas[i]);
         
         //printMatrix(z);
 
@@ -988,18 +992,18 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //Set meas noise
         for (int i = 0; i < curve_meas_size; i++)
         {
-            R->data.db[(meas_size+1)*i] = MEAS_COV;
+            cvmSet(R,i,i, pow(MEAS_COV,2.0));
         }
             //cvShowImage("R",R);
             //cvWaitKey(0);
-            R->data.db[(meas_size+1)*(n*8)] = pow(Z_MEAS_COV,2.0);
-            R->data.db[(meas_size+1)*(n*8+1)] = pow(PHI_MEAS_COV,2.0);
-            R->data.db[(meas_size+1)*(n*8+2)] = pow(THETA_MEAS_COV,2.0);
+            cvmSet(R,n*8,n*8, pow(Z_MEAS_COV,2.0));
+            cvmSet(R,n*8+1,n*8+1, pow(PHI_MEAS_COV,2.0));
+            cvmSet(R,n*8+2,n*8+2, pow(THETA_MEAS_COV,2.0));
             //cvShowImage("R",R);
             //cvWaitKey(0);
         for (int i = curve_meas_size; i < meas_size; i++)
         {
-            R->data.db[(meas_size+1)*i] = pow(PT_MEAS_COV,2.0);
+            cvmSet(R,i,i, pow(PT_MEAS_COV,2.0));
         }
             //cvShowImage("R",R);
             //cvWaitKey(0);
@@ -1048,8 +1052,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                     cvmSet( temp8, i, j, A->at(k)->data.db[4*i+j]);
                     cvmSet( temp8, i+4, j+4, A->at(k)->data.db[4*i+j]);
                 }
-                temp81->data.db[i] = x->data.db[i+curve_num->at(k)*8+ROBOT_STATE_SIZE];
-                temp81->data.db[i+4] = x->data.db[i+curve_num->at(k)*8+ROBOT_STATE_SIZE+4];
+                cvmSet(temp81,i,0, cvmGet(x,i+curve_num->at(k)*8+ROBOT_STATE_SIZE,0));
+                cvmSet(temp81,i+4,0, cvmGet(x,i+curve_num->at(k)*8+ROBOT_STATE_SIZE+4,0));
             }
             cvMatMul(temp8,temp81,temp81);
             for (int i = 0; i < 4; i++)
@@ -1063,7 +1067,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                 {
                     for (int j = 0; j < 8; j++)
                     {
-                        cvmSet( H, i+k*8, j+curve_num->at(k)*8+ROBOT_STATE_SIZE, temp8->data.db[8*i+j]);
+                        cvmSet( H, i+k*8, j+curve_num->at(k)*8+ROBOT_STATE_SIZE, cvmGet(temp8,i,j));
                     }
                 }
         //cvShowImage("H",H);
@@ -1122,17 +1126,17 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             for (int k = 0; k < n_pts; k++)
             {
                 //Get existing state corresponding to measurement, and transform to body frame too
-                xe->data.db[0] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3];
-                xe->data.db[1] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+1];
-                xe->data.db[2] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+2];
+                xe->data.db[0] = cvmGet(x,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3,0);
+                xe->data.db[1] = cvmGet(x,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+1,0);
+                xe->data.db[2] = cvmGet(x,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+2,0);
                 cvSub(xe,Tbe,xe);
                 cvMatMul(R_be,xe,xb);
                 
                 //Add predicted measurement to vector too (for later)
-                predicted_meas_pts->data.db[k*4] = FX/xb->data.db[0]*(xb->data.db[1]+0.5*BASELINE)+CX;
-                predicted_meas_pts->data.db[k*4+1] = FY/xb->data.db[0]*xb->data.db[2]+CY;
-                predicted_meas_pts->data.db[k*4+2] = FX/xb->data.db[0]*(xb->data.db[1]-0.5*BASELINE)+CX;
-                predicted_meas_pts->data.db[k*4+3] = FY/xb->data.db[0]*xb->data.db[2]+CY;
+                cvmSet(predicted_meas_pts,k*4,0,FX/xb->data.db[0]*(xb->data.db[1]+0.5*BASELINE)+CX);
+                cvmSet(predicted_meas_pts,k*4+1,0, FY/xb->data.db[0]*xb->data.db[2]+CY);
+                cvmSet(predicted_meas_pts,k*4+2,0, FX/xb->data.db[0]*(xb->data.db[1]-0.5*BASELINE)+CX);
+                cvmSet(predicted_meas_pts,k*4+3,0, FY/xb->data.db[0]*xb->data.db[2]+CY);
 
                 //dzdxb
                 dzdxb->data.db[0] = -FX/(xb->data.db[0]*xb->data.db[0])*(xb->data.db[1]+BASELINE/2.0);
@@ -1147,7 +1151,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                 dzdxb->data.db[9] = -FY/(xb->data.db[0]*xb->data.db[0])*xb->data.db[2];
                 dzdxb->data.db[10] = 0.0;
                 dzdxb->data.db[11] = FY/xb->data.db[0];
-
+                
                 //dzdr and dzdxe
                 cvMatMul(dzdxb,R_be,temp43);
                 for (int i = 0; i < 4; i++)
@@ -1266,14 +1270,14 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         {
             GetPredictedMeasurement(temp81,x,A->at(i),curve_num->at(i));
             for (int j = 0; j < 8; j++)
-                tempn1->data.db[8*i+j]=temp81->data.db[j];
+                cvmSet(tempn1,8*i+j,0, temp81->data.db[j]);
         }
-        tempn1->data.db[n*8] = x->data.db[2];
-        tempn1->data.db[n*8+1] = x->data.db[3];
-        tempn1->data.db[n*8+2] = x->data.db[4];
+        cvmSet(tempn1,n*8,0, x->data.db[2]);
+        cvmSet(tempn1,n*8+1,0, x->data.db[3]);
+        cvmSet(tempn1,n*8+2,0, x->data.db[4]);
         for (int i = 0; i < pt_meas_size; i++)
         {
-            tempn1->data.db[i+curve_meas_size]=predicted_meas_pts->data.db[i];
+            cvmSet(tempn1,i+curve_meas_size,0,predicted_meas_pts->data.db[i]);
         }
         
         //cout << "2c\n";
@@ -1423,6 +1427,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvShowImage("Pnew",P);
         //cvWaitKey(0);
     cout << "Exiting UpdateCurvesAndPoints" << endl;
+    printMatrix(x);    
+    cvWaitKey(0);
 }
 
 void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts)
@@ -1881,68 +1887,68 @@ bool KalmanFilter::CheckValidMeasurement(double theta, double phi, double z, int
 
 void KalmanFilter::get_Reb_derivs(double phi, double theta, double psi, CvMat * R_eb_phi, CvMat * R_eb_theta, CvMat * R_eb_psi)
 {
-        R_eb_phi->data.db[0] = 0.0;
-        R_eb_phi->data.db[1] = cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi);
-        R_eb_phi->data.db[2] = -cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi);
-        R_eb_phi->data.db[3] = 0.0;
-        R_eb_phi->data.db[4] = sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi);
-        R_eb_phi->data.db[5] = -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi);
-        R_eb_phi->data.db[6] = 0.0;
-        R_eb_phi->data.db[7] = cos(theta)*cos(phi);
-        R_eb_phi->data.db[8] = -cos(theta)*sin(phi);
+        cvmSet(R_eb_phi,0,0, 0.0);
+        cvmSet(R_eb_phi,0,1, cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi));
+        cvmSet(R_eb_phi,0,2, -cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi));
+        cvmSet(R_eb_phi,1,0, 0.0);
+        cvmSet(R_eb_phi,1,1, sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi));
+        cvmSet(R_eb_phi,1,2, -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi));
+        cvmSet(R_eb_phi,2,0, 0.0);
+        cvmSet(R_eb_phi,2,1, cos(theta)*cos(phi));
+        cvmSet(R_eb_phi,2,2, -cos(theta)*sin(phi));
         
-        R_eb_theta->data.db[0] = -cos(psi)*sin(theta);
-        R_eb_theta->data.db[1] = cos(psi)*cos(theta)*sin(phi);
-        R_eb_theta->data.db[2] = cos(psi)*cos(theta)*cos(phi);
-        R_eb_theta->data.db[3] = -sin(psi)*sin(theta);
-        R_eb_theta->data.db[4] = sin(psi)*cos(theta)*sin(phi);
-        R_eb_theta->data.db[5] = sin(psi)*cos(theta)*cos(phi);
-        R_eb_theta->data.db[6] = -cos(theta);
-        R_eb_theta->data.db[7] = -sin(theta)*sin(phi);
-        R_eb_theta->data.db[8] = -sin(theta)*cos(phi);
+        cvmSet(R_eb_theta,0,0, -cos(psi)*sin(theta));
+        cvmSet(R_eb_theta,0,1, cos(psi)*cos(theta)*sin(phi));
+        cvmSet(R_eb_theta,0,2, cos(psi)*cos(theta)*cos(phi));
+        cvmSet(R_eb_theta,1,0, -sin(psi)*sin(theta));
+        cvmSet(R_eb_theta,1,1, sin(psi)*cos(theta)*sin(phi));
+        cvmSet(R_eb_theta,1,2, sin(psi)*cos(theta)*cos(phi));
+        cvmSet(R_eb_theta,2,0, -cos(theta));
+        cvmSet(R_eb_theta,2,1, -sin(theta)*sin(phi));
+        cvmSet(R_eb_theta,2,2, -sin(theta)*cos(phi));
         
-        R_eb_psi->data.db[0] = -sin(psi)*cos(theta);
-        R_eb_psi->data.db[1] = -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi);
-        R_eb_psi->data.db[2] = -sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi);
-        R_eb_psi->data.db[3] = cos(psi)*cos(theta);
-        R_eb_psi->data.db[4] = cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi);
-        R_eb_psi->data.db[5] = cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi);
-        R_eb_psi->data.db[6] = 0.0;
-        R_eb_psi->data.db[7] = 0.0;
-        R_eb_psi->data.db[8] = 0.0;
+        cvmSet(R_eb_psi,0,0, -sin(psi)*cos(theta));
+        cvmSet(R_eb_psi,0,1, -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi));
+        cvmSet(R_eb_psi,0,2, -sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi));
+        cvmSet(R_eb_psi,1,0, cos(psi)*cos(theta));
+        cvmSet(R_eb_psi,1,1, cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi));
+        cvmSet(R_eb_psi,1,2, cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi));
+        cvmSet(R_eb_psi,2,0, 0.0);
+        cvmSet(R_eb_psi,2,1, 0.0);
+        cvmSet(R_eb_psi,2,2, 0.0);
 }
 
 void KalmanFilter::get_Rbe_derivs(double phi, double theta, double psi, CvMat * R_be_phi, CvMat * R_be_theta, CvMat * R_be_psi)
 {
-        R_be_phi->data.db[0] = 0.0;
-        R_be_phi->data.db[3] = cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi);
-        R_be_phi->data.db[6] = -cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi);
-        R_be_phi->data.db[1] = 0.0;
-        R_be_phi->data.db[4] = sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi);
-        R_be_phi->data.db[7] = -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi);
-        R_be_phi->data.db[2] = 0.0;
-        R_be_phi->data.db[5] = cos(theta)*cos(phi);
-        R_be_phi->data.db[8] = -cos(theta)*sin(phi);
+        cvmSet(R_be_phi,0,0, 0.0);
+        cvmSet(R_be_phi,1,0, cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi));
+        cvmSet(R_be_phi,2,0, -cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi));
+        cvmSet(R_be_phi,0,1, 0.0);
+        cvmSet(R_be_phi,1,1, sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi));
+        cvmSet(R_be_phi,2,1, -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi));
+        cvmSet(R_be_phi,0,2, 0.0);
+        cvmSet(R_be_phi,1,2, cos(theta)*cos(phi));
+        cvmSet(R_be_phi,2,2, -cos(theta)*sin(phi));
         
-        R_be_theta->data.db[0] = -cos(psi)*sin(theta);
-        R_be_theta->data.db[3] = cos(psi)*cos(theta)*sin(phi);
-        R_be_theta->data.db[6] = cos(psi)*cos(theta)*cos(phi);
-        R_be_theta->data.db[1] = -sin(psi)*sin(theta);
-        R_be_theta->data.db[4] = sin(psi)*cos(theta)*sin(phi);
-        R_be_theta->data.db[7] = sin(psi)*cos(theta)*cos(phi);
-        R_be_theta->data.db[2] = -cos(theta);
-        R_be_theta->data.db[5] = -sin(theta)*sin(phi);
-        R_be_theta->data.db[8] = -sin(theta)*cos(phi);
+        cvmSet(R_be_theta,0,0, -cos(psi)*sin(theta));
+        cvmSet(R_be_theta,1,0, cos(psi)*cos(theta)*sin(phi));
+        cvmSet(R_be_theta,2,0, cos(psi)*cos(theta)*cos(phi));
+        cvmSet(R_be_theta,0,1, -sin(psi)*sin(theta));
+        cvmSet(R_be_theta,1,1, sin(psi)*cos(theta)*sin(phi));
+        cvmSet(R_be_theta,1,1, sin(psi)*cos(theta)*cos(phi));
+        cvmSet(R_be_theta,0,2, -cos(theta));
+        cvmSet(R_be_theta,1,2, -sin(theta)*sin(phi));
+        cvmSet(R_be_theta,2,2, -sin(theta)*cos(phi));
         
-        R_be_psi->data.db[0] = -sin(psi)*cos(theta);
-        R_be_psi->data.db[3] = -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi);
-        R_be_psi->data.db[6] = -sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi);
-        R_be_psi->data.db[1] = cos(psi)*cos(theta);
-        R_be_psi->data.db[4] = cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi);
-        R_be_psi->data.db[7] = cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi);
-        R_be_psi->data.db[2] = 0.0;
-        R_be_psi->data.db[5] = 0.0;
-        R_be_psi->data.db[8] = 0.0;
+        cvmSet(R_be_psi,0,0, -sin(psi)*cos(theta));
+        cvmSet(R_be_psi,1,0, -sin(psi)*sin(theta)*sin(phi)-cos(psi)*cos(phi));
+        cvmSet(R_be_psi,2,0, -sin(psi)*sin(theta)*cos(phi)-cos(psi)*sin(phi));
+        cvmSet(R_be_psi,0,1, cos(psi)*cos(theta));
+        cvmSet(R_be_psi,1,1, cos(psi)*sin(theta)*sin(phi)-sin(psi)*cos(phi));
+        cvmSet(R_be_psi,2,1, cos(psi)*sin(theta)*cos(phi)+sin(psi)*sin(phi));
+        cvmSet(R_be_psi,0,2, 0.0);
+        cvmSet(R_be_psi,1,2, 0.0);
+        cvmSet(R_be_psi,2,2, 0.0);
 }
 
 void KalmanFilter::printMatrix(CvMat * matrix)
