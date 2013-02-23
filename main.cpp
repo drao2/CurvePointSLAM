@@ -461,7 +461,7 @@ int main(void)
                 //if (!first_time)
                     //EKF->PredictKF();
             }
-                            cvShowImage("Left",image_color[LEFT]);
+                cvShowImage("Left",image_color[LEFT]);
                 cvShowImage("Right",image_color[RIGHT]);
                 cvShowImage("Last Left",last_image_color[LEFT]);
                 cvShowImage("Last Right",last_image_color[RIGHT]);
@@ -1266,12 +1266,14 @@ int main(void)
                         z->data.db[num_curves_to_update*8+2] = theta;
                         //cout << "n pts existing: " << n_pts_existing << endl;
                         //n_pts_existing = MIN(10,n_pts_existing);
-                        EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],n_pts_existing);
+                        //EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],n_pts_existing);
+                        EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],0);
+                        //EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                         //EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     }
 
                 }
-                else if (n_pts_existing > 0)
+                if (n_pts_existing > 0)
                     EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     
                 curves_updated_last.clear();

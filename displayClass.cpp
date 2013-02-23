@@ -153,6 +153,9 @@ void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limit
             }
         }
                    
+                   char num_string[10];	CvFont font;
+	cvInitFont(&font,CV_FONT_HERSHEY_SIMPLEX,0.5,0.5,0,1,8);
+                   
         //Generate state map points
         for (int k = 0; k < num_pts; k++)
         {
@@ -161,6 +164,9 @@ void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limit
                 convert3Dtogroundmap(&pos, &map_point);
 
                 cvCircle(landmark_map,map_point,1,CV_RGB(127,127,127));
+                sprintf(num_string,"%d",k);
+                map_point.x += 10;
+                //cvPutText(landmark_map,num_string,map_point,&font,CV_RGB(0,0,0));
                 pos.x = 0.0;
                 pos.y = 0.0;
         }

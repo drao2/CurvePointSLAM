@@ -25,10 +25,10 @@
 #define WINDOW_HALF     ((WINDOW_SIZE-1)/2)
 #define PATCH_SIZE      21
 #define PATCH_HALF     ((PATCH_SIZE-1)/2)
-#define EPI_THRESH      5
-#define DISP_THRESH_HI      50
+#define EPI_THRESH      10
+#define DISP_THRESH_HI      100
 #define DISP_THRESH_LO      5
-#define SSD_THRESH      (2.0*WINDOW_SIZE*WINDOW_SIZE)//700.0
+#define SSD_THRESH      (0.5*WINDOW_SIZE*WINDOW_SIZE)//700.0
 #define DA_SSD_THRESH   SSD_THRESH/2.0
 #define LM_OPTS_SZ    	 5 /* max(4, 5) */
 #define LM_INFO_SZ    	 10
@@ -42,12 +42,17 @@
 #define REPROJ_OUTLIER_THRESH   20.0
 #define MIN_INLIER_PTS          10
 
+#define BORDER_TOP     20
+#define BORDER_LEFT     20
+#define BORDER_RIGHT     300
+#define BORDER_BOTTOM     220
+
 #define HUGE_NUMBER     1000000.0
 #define HUGER_NUMBER    10000000.0
 
 #define LM_MOTION_THRESH   100.0     //The amount the landmark is allowed to drift in the image per frame
 #define LM_PROXIMITY_THRESH     20.0    //For new landmarks, we reject them if they are this close to an existing one
-#define NUM_CURRENT_LANDMARKS   10
+#define NUM_CURRENT_LANDMARKS   100
 
 class PointFeaturesClass
 {

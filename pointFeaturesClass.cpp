@@ -18,7 +18,7 @@ PointFeaturesClass::PointFeaturesClass()
         //srand(0);
 	//return;
         
-        optical_flow_window = cvSize(31,31);
+        optical_flow_window = cvSize(21,21);
         optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .0001 );
         
         num_pts_last = 0;
@@ -128,12 +128,12 @@ void PointFeaturesClass::trackExistingLandmarks(IplImage ** last_image, IplImage
                 if(fabs(temp_pts_curr[LEFT][i].y-temp_pts_curr[RIGHT][i].y) < EPI_THRESH)
                 {
                     //If disparity OK
-                    if((temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) > 0.0 && (temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) < 50.0)
+                    if((temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) < DISP_THRESH_HI && (temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) > DISP_THRESH_LO)
                     {
                         //If not too close to the edge
-                        if(temp_pts_curr[LEFT][i].x > PATCH_HALF+0 && temp_pts_curr[LEFT][i].x < PIC_WIDTH-PATCH_HALF-0 && temp_pts_curr[LEFT][i].y > PATCH_HALF+0 && temp_pts_curr[LEFT][i].y < PIC_HEIGHT-PATCH_HALF-0)
+                        if(temp_pts_curr[LEFT][i].x > PATCH_HALF+BORDER_LEFT && temp_pts_curr[LEFT][i].x < BORDER_RIGHT-PATCH_HALF-0 && temp_pts_curr[LEFT][i].y > PATCH_HALF+BORDER_TOP && temp_pts_curr[LEFT][i].y < BORDER_BOTTOM-PATCH_HALF)
                         {
-                            if(temp_pts_curr[RIGHT][i].x > PATCH_HALF+0 && temp_pts_curr[RIGHT][i].x < PIC_WIDTH-PATCH_HALF-0 && temp_pts_curr[RIGHT][i].y > PATCH_HALF+0 && temp_pts_curr[RIGHT][i].y < PIC_HEIGHT-PATCH_HALF-0)
+                            if(temp_pts_curr[RIGHT][i].x > PATCH_HALF+BORDER_LEFT && temp_pts_curr[RIGHT][i].x < BORDER_RIGHT-PATCH_HALF-0 && temp_pts_curr[RIGHT][i].y > PATCH_HALF+BORDER_TOP && temp_pts_curr[RIGHT][i].y < BORDER_BOTTOM-PATCH_HALF)
                             {
                                 //If SSD matches reasonably between tracked features for both images
                                 cvSetImageROI(image[LEFT],cvRect(temp_pts_curr[LEFT][i].x-PATCH_HALF,temp_pts_curr[LEFT][i].y-PATCH_HALF,PATCH_SIZE,PATCH_SIZE));
@@ -177,16 +177,16 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
         //Find left image features
         CvPoint2D32f image_features_left[MAX_VODOM_FEATURES];
         int num_features_left = MAX_VODOM_FEATURES;
-        cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.01, 20, NULL, 13, 0, 0.04);
+        cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.001, 20, NULL, 7, 0, 0.04);
         //Find right image features
         CvPoint2D32f image_features_right[MAX_VODOM_FEATURES];
         int num_features_right = MAX_VODOM_FEATURES;
-        cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.01, 20, NULL, 13, 0, 0.04);
+        cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.001, 20, NULL, 7, 0, 0.04);
 
         //Remove ones that are too close to the edges
         for (int i = 0; i < num_features_left; i++)
         {
-            while (image_features_left[i].x <= WINDOW_HALF || image_features_left[i].x >= PIC_WIDTH-WINDOW_HALF || image_features_left[i].y <= 50+WINDOW_HALF || image_features_left[i].y >= PIC_HEIGHT-WINDOW_HALF )
+            while (image_features_left[i].x <= WINDOW_HALF+BORDER_LEFT || image_features_left[i].x >= BORDER_RIGHT-WINDOW_HALF || image_features_left[i].y <= BORDER_TOP+WINDOW_HALF || image_features_left[i].y >= BORDER_BOTTOM-WINDOW_HALF )
             {
                 image_features_left[i] =  image_features_left[num_features_left-1];
                 num_features_left--;
@@ -325,6 +325,7 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
             
             //Copy whatever we need (only to make up the rest) to pts_curr and meas_new
             //Also update matches_curr
+            // TODO: SORT BY HOW GOOD THEY ARE!!!!
             for (int i = 0; i < num_features_to_add; i++)
             {
                 pts_curr[LEFT][num_pts_curr] = matched_features_left[i];
