@@ -1309,7 +1309,7 @@ int main(void)
             //EKF->printMatrix(state_current);
 
             //Display curves
-            display_GUI->generate_map(state_current,&state_limits,z, EKF->num_curves, EKF->num_points);
+            display_GUI->generate_map(state_current,&state_limits,z, &(EKF->curve_inds), &(EKF->point_inds), EKF->num_curves, EKF->num_points);
             //Print robot pose
             //cout << "X: " << state_current->data.db[0] << "\n" << "Y: " << state_current->data.db[1] << "\n" << "Z: " << state_current->data.db[2] << "\n"  << "Pitch: " << state_current->data.db[4]*180.0/PI << "\n" << "Roll: " << state_current->data.db[3]*180.0/PI << "\n" << "Yaw: " << state_current->data.db[5]*180.0/PI << "\n";
 #endif

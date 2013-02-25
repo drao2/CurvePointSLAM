@@ -35,7 +35,7 @@ public:
         void display_images(IplImage* image_left, IplImage* image_right, vector<Keypoint> *features_left, vector<Keypoint> *features_right);
         void display_images(IplImage* image_left, IplImage* image_right, CvMat ** featuresLeftImage, CvMat ** featuresRightImage, double * p_left, double * p_right, IplImage * img_out_left, IplImage * img_out_right);
         void display_images(double * p_left, double * p_right);
-        void generate_map(CvMat * state, std::vector<double> * state_limits, CvMat * z, int num_curves, int num_pts);
+        void generate_map(CvMat * state, std::vector<double> * state_limits, CvMat * z, std::vector<int> * curve_inds, std::vector<int> * point_inds, int num_curves, int num_pts);
         
         float getTime();
 	void resetTime();

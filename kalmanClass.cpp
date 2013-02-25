@@ -532,10 +532,11 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 
         num_curves++;
         
+        int existing_size = P->rows;
         CvMat * PN1N1 = newMatrix(8,8,CV_64FC1);
         CvMat * PN1r = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
-        CvMat * PN1i = newMatrix(8,(num_curves-1)*8+num_points*3,CV_64FC1); //For curve terms only
-        CvMat * Pri = newMatrix(ROBOT_STATE_SIZE,(num_curves-1)*8+num_points*3,CV_64FC1); //For curve AND terms only
+        CvMat * PN1i = newMatrix(8,existing_size-ROBOT_STATE_SIZE,CV_64FC1); //For curve terms only
+        CvMat * Pri = newMatrix(ROBOT_STATE_SIZE,existing_size-ROBOT_STATE_SIZE,CV_64FC1); //For curve AND terms only
         CvMat * ones = newMatrix(4,1,CV_64FC1);
         CvMat * temp58 = newMatrix(ROBOT_STATE_SIZE,8,CV_64FC1);
         CvMat * temp5 = newMatrix(ROBOT_STATE_SIZE,ROBOT_STATE_SIZE,CV_64FC1);
@@ -547,7 +548,6 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         //Resize P and x
         CvMat * Pcopy = cvCloneMat(P);
         CvMat * xcopy = cvCloneMat(x);
-        int existing_size = Pcopy->rows;
         cvReleaseMat(&P);
         cvReleaseMat(&x);
         P = newMatrix(existing_size+8,existing_size+8,CV_64FC1);
@@ -558,48 +558,20 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         {
             for (int j = 0; j < ROBOT_STATE_SIZE; j++)
                 cvmSet(Prr,i,j,cvmGet(Pcopy,i,j));
-            for (int j = 0; j < (num_curves-1)*8; j++)
+            for (int j = 0; j < existing_size-ROBOT_STATE_SIZE; j++)
                 cvmSet(Pri,i,j,cvmGet(Pcopy,i,j+ROBOT_STATE_SIZE));
-            for (int j = 0; j < num_points*3; j++)
-                cvmSet(Pri,i,j+(num_curves-1)*8,cvmGet(Pcopy,i,j+(num_curves-1)*8+ROBOT_STATE_SIZE));
         }
-
-        //Changing the state vector and covariance is tricky, since we need to insert it in the middle
-        //The robot state and existing curves are in the same place:
-        for (int i = 0; i < (num_curves-1)*8+ROBOT_STATE_SIZE; i++)
+        
+        //The robot state and existing landmarks are in the same place
+        for (int i = 0; i < existing_size; i++)
         {
-            for (int j = 0; j < (num_curves-1)*8+ROBOT_STATE_SIZE; j++)
+            for (int j = 0; j < existing_size; j++)
             {
                 cvmSet(P,i,j,cvmGet(Pcopy,i,j));
             }
             cvmSet(x,i,0, cvmGet(xcopy,i,0));
         }
         
-        if(num_points)
-        {
-            //The existing point landmarks need to be moved down
-            //And covariance (3 blocks, Pri,Pir, Pii), note that r refers to robot and curve landmarks!
-            for (int i = 0; i < (num_curves-1)*8+ROBOT_STATE_SIZE; i++)
-            {
-                for (int j = (num_curves-1)*8+ROBOT_STATE_SIZE; j < existing_size; j++)
-                    cvmSet(P,i,j+8,cvmGet(Pcopy,i,j));
-            }
-            
-            for (int j = 0; j < (num_curves-1)*8+ROBOT_STATE_SIZE; j++)
-            {
-                for (int i = (num_curves-1)*8+ROBOT_STATE_SIZE; i < existing_size; i++)
-                    cvmSet(P,i+8,j,cvmGet(Pcopy,i,j));
-            }
-        
-            for (int i = (num_curves-1)*8+ROBOT_STATE_SIZE; i < existing_size; i++)
-            {
-                for (int j = (num_curves-1)*8+ROBOT_STATE_SIZE; j < existing_size; j++)
-                    cvmSet(P,i+8,j+8,cvmGet(Pcopy,i,j));
-                cvmSet(x,i+8,0, cvmGet(xcopy,i,0));
-            }
-        
-        }
-
         cvReleaseMat(&xcopy);
         cvReleaseMat(&Pcopy);
 
@@ -693,31 +665,27 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 
         //Expand array ROI and add new bits
 
+        curve_inds.push_back(existing_size);
+        
         for (int i = 0; i < 8; i++)
         {
-            cvmSet(x,(num_curves-1)*8+i+ROBOT_STATE_SIZE,0, cvmGet(xcurrent8,i,0));
+            cvmSet(x,existing_size+i,0, cvmGet(xcurrent8,i,0));
             
             for (int j = 0; j < 8; j++)
             {
-                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1N1,i,j) );
+                cvmSet( P, i+existing_size, j+existing_size, cvmGet(PN1N1,i,j) );
             }
             
-            for (int j = 0; j < (num_curves-1)*8; j++)
+            for (int j = 0; j < existing_size-ROBOT_STATE_SIZE; j++)
             {
-                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
-                cvmSet( P, j+ROBOT_STATE_SIZE, i+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
-            }
-            
-            for (int j = (num_curves-1)*8; j < (num_curves-1)*8+num_points*3; j++)
-            {
-                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j+8+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
-                cvmSet( P, j+8+ROBOT_STATE_SIZE, i+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
+                cvmSet( P, i+existing_size, j+ROBOT_STATE_SIZE, cvmGet(PN1i,i,j) );
+                cvmSet( P, j+ROBOT_STATE_SIZE, i+existing_size, cvmGet(PN1i,i,j) );
             }
 
             for(int j = 0; j < ROBOT_STATE_SIZE; j++)
             {
-                cvmSet( P, i+(num_curves-1)*8+ROBOT_STATE_SIZE, j, cvmGet(PN1r,i,j) );
-                cvmSet( P, j, i+(num_curves-1)*8+ROBOT_STATE_SIZE, cvmGet(PN1r,i,j) );
+                cvmSet( P, i+existing_size, j, cvmGet(PN1r,i,j) );
+                cvmSet( P, j, i+existing_size, cvmGet(PN1r,i,j) );
             }
         }
         
@@ -1060,8 +1028,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                     cvmSet( temp8, i, j, cvmGet(A->at(k),i,j));
                     cvmSet( temp8, i+4, j+4, cvmGet(A->at(k),i,j));
                 }
-                cvmSet(temp81,i,0, cvmGet(x,i+curve_num->at(k)*8+ROBOT_STATE_SIZE,0));
-                cvmSet(temp81,i+4,0, cvmGet(x,i+curve_num->at(k)*8+ROBOT_STATE_SIZE+4,0));
+                cvmSet(temp81,i,0, cvmGet(x,i+curve_inds[curve_num->at(k)],0));
+                cvmSet(temp81,i+4,0, cvmGet(x,i+curve_inds[curve_num->at(k)]+4,0));
             }
             cvMatMul(temp8,temp81,temp81);
             for (int i = 0; i < 4; i++)
@@ -1075,7 +1043,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                 {
                     for (int j = 0; j < 8; j++)
                     {
-                        cvmSet( H, i+k*8, j+curve_num->at(k)*8+ROBOT_STATE_SIZE, cvmGet(temp8,i,j));
+                        cvmSet( H, i+k*8, j+curve_inds[curve_num->at(k)], cvmGet(temp8,i,j));
                     }
                 }
         //cvShowImage("H",H);
@@ -1134,9 +1102,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             for (int k = 0; k < n_pts; k++)
             {
                 //Get existing state corresponding to measurement, and transform to body frame too
-                xe->data.db[0] = cvmGet(x,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3,0);
-                xe->data.db[1] = cvmGet(x,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+1,0);
-                xe->data.db[2] = cvmGet(x,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+2,0);
+                xe->data.db[0] = cvmGet(x,point_inds[point_nums[k]],0);
+                xe->data.db[1] = cvmGet(x,point_inds[point_nums[k]]+1,0);
+                xe->data.db[2] = cvmGet(x,point_inds[point_nums[k]]+2,0);
                 cvSub(xe,Tbe,xe);
                 cvMatMul(R_be,xe,xb);
                 
@@ -1170,7 +1138,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
                     for (int j = 0; j < 3; j++)
                     {
                         cvmSet(H,curve_meas_size+k*4+i,j,-temp43->data.db[3*i+j]);
-                        cvmSet(H,curve_meas_size+k*4+i,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+j,temp43->data.db[3*i+j]);
+                        cvmSet(H,curve_meas_size+k*4+i,point_inds[point_nums[k]]+j,temp43->data.db[3*i+j]);
                     }
                 }
         //cvShowImage("H",H);
@@ -1367,8 +1335,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //printMatrix(K);
         cvAdd(x,delx,x);
         
-        //cout << "x:\n";
-        //printMatrix(x);
+        cout << "x:\n";
+        printMatrix(x);
 
         while(x->data.db[3] > PI)
             x->data.db[3] -= 2*PI;
@@ -1415,10 +1383,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         cvReleaseMat(&R);
         cvReleaseMat(&S);
         cvReleaseMat(&K);
-        //cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
         cvReleaseMat(&Kt);
         cvReleaseMat(&Kt2);
-        //cout << num_curves << " " << num_points << " " << x->rows << " " << P->rows << endl;
         cvReleaseMat(&temp);
         cvReleaseMat(&tempn);
         cvReleaseMat(&tempn1);
@@ -1441,6 +1407,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvShowImage("Pnew",P);
         //cvWaitKey(0);
     cout << "Exiting UpdateCurvesAndPoints" << endl;
+    printMatrix(P);
     //printMatrix(x);    
     //cvWaitKey(0);
 }
@@ -1520,9 +1487,9 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         for (int k = 0; k < n_pts; k++)
         {
             //Get existing state corresponding to measurement, and transform to body frame too
-            xe->data.db[0] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3];
-            xe->data.db[1] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+1];
-            xe->data.db[2] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+2];
+            xe->data.db[0] = x->data.db[point_inds[point_nums[k]]];
+            xe->data.db[1] = x->data.db[point_inds[point_nums[k]]+1];
+            xe->data.db[2] = x->data.db[point_inds[point_nums[k]]+2];
             cvSub(xe,Tbe,xe);
             cvMatMul(R_be,xe,xb);
                 
@@ -1556,7 +1523,7 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
                 for (int j = 0; j < 3; j++)
                 {
                     cvmSet(H,k*4+i,j,-temp43->data.db[3*i+j]);
-                    cvmSet(H,k*4+i,ROBOT_STATE_SIZE+num_curves*8+point_nums[k]*3+j,temp43->data.db[3*i+j]);
+                    cvmSet(H,k*4+i,point_inds[point_nums[k]]+j,temp43->data.db[3*i+j]);
                 }
             }
     //cvShowImage("H",H);
@@ -1603,22 +1570,6 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         //cvShowImage("P",P);
         //cvWaitKey(0);
         cvMatMul(P,K,K);
-
-        //Delete gain entries related to states just added (VERY HACKY!)
-        for (int i = num_curves_before_add*8+ROBOT_STATE_SIZE; i < num_curves*8+ROBOT_STATE_SIZE; i++)
-        {
-            for (int j = 0; j < K->cols; j++)
-            {
-                cvmSet(K,i,j,0.0);
-            }
-        }
-        for (int i = num_points_before_add*3+num_curves*8+ROBOT_STATE_SIZE; i < num_points*3+num_curves*8+ROBOT_STATE_SIZE; i++)
-        {
-            for (int j = 0; j < K->cols; j++)
-            {
-                cvmSet(K,i,j,0.0);
-            }
-        }
         
         
         //cout << "K after P, P before calc" << endl;
@@ -1847,7 +1798,7 @@ void KalmanFilter::GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvM
 
     //Transform ax's to a2 curve and subtract current vehicle x
     for (int i = 0; i < 4; i++)
-        temp41->data.db[i] = x_current->data.db[i+num_curve*8+ROBOT_STATE_SIZE];
+        temp41->data.db[i] = x_current->data.db[i+curve_inds[num_curve]];
     cvMatMul(A,temp41,temp41);
     for (int i = 0; i < 4; i++)
         temp81->data.db[i] = temp41->data.db[i] - Tx;
@@ -1855,7 +1806,7 @@ void KalmanFilter::GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvM
 
     //Transform ay's to a2 curve and subtract current vehicle y
     for (int i = 0; i < 4; i++)
-        temp41->data.db[i] = x_current->data.db[i+num_curve*8+ROBOT_STATE_SIZE+4];
+        temp41->data.db[i] = x_current->data.db[i+curve_inds[num_curve]+4];
     cvMatMul(A,temp41,temp41);
     for (int i = 0; i < 4; i++)
         temp81->data.db[i+4] = temp41->data.db[i] - Ty;
@@ -2055,9 +2006,9 @@ void KalmanFilter::predictPointMeas(CvMat * meas, CvMat * x, int point_num)
     Tbe->data.db[2] = x->data.db[2];
     generate_Rbe(x->data.db[3], x->data.db[4], x->data.db[5], R_be);
     //Get existing state corresponding to measurement, and transform to body frame too
-    xb->data.db[0] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_num*3];
-    xb->data.db[1] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_num*3+1];
-    xb->data.db[2] = x->data.db[ROBOT_STATE_SIZE+num_curves*8+point_num*3+2];
+    xb->data.db[0] = x->data.db[point_inds[point_num]];
+    xb->data.db[1] = x->data.db[point_inds[point_num]+1];
+    xb->data.db[2] = x->data.db[point_inds[point_num]+2];
     cvSub(xb,Tbe,xb);
     cvMatMul(R_be,xb,xb);
 

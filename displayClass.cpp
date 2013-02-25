@@ -70,7 +70,7 @@ void DisplayClass::convert3Dtogroundmap(CvPoint3D32f * world_point, CvPoint * ma
 
 
 //Generate landmark map at each timestep
-void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limits, CvMat * z, int num_curves, int num_pts)
+void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limits, CvMat * z, std::vector<int> * curve_inds, std::vector<int> * point_inds, int num_curves, int num_pts)
 {
 	gettimeofday(&start, NULL);
         
@@ -115,8 +115,8 @@ void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limit
 
                     for (int i = 0; i <= 3; i++)
                     {
-                        pos.x += binom[3][i]*pow(1-t,3-i)*pow(t,i)*state->data.db[8*k+i+ROBOT_STATE_SIZE]; //+3 because of the 3D planar pose state variables
-                        pos.y += binom[3][i]*pow(1-t,3-i)*pow(t,i)*state->data.db[8*k+i+ROBOT_STATE_SIZE+4];
+                        pos.x += binom[3][i]*pow(1-t,3-i)*pow(t,i)*state->data.db[curve_inds->at(k)+i]; //+3 because of the 3D planar pose state variables
+                        pos.y += binom[3][i]*pow(1-t,3-i)*pow(t,i)*state->data.db[curve_inds->at(k)+i+4];
                     }
 
 
@@ -159,8 +159,8 @@ void DisplayClass::generate_map(CvMat * state, std::vector<double> * state_limit
         //Generate state map points
         for (int k = 0; k < num_pts; k++)
         {
-            pos.x = state->data.db[8*num_curves+ROBOT_STATE_SIZE+k*3];
-            pos.y = state->data.db[8*num_curves+ROBOT_STATE_SIZE+k*3+1];
+            pos.x = state->data.db[point_inds->at(k)];
+            pos.y = state->data.db[point_inds->at(k)+1];
                 convert3Dtogroundmap(&pos, &map_point);
 
                 cvCircle(landmark_map,map_point,1,CV_RGB(127,127,127));
