@@ -474,7 +474,7 @@ int main(void)
             
             cvCopy(image_raw[0], image_color[0], NULL);
             cvCopy(image_raw[1], image_color[1], NULL);
-            if(!first_time)
+            if(!first_time && !valid_last_measurement)
             {
                 pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
                 //cout << n_pts_existing << " " << n_pts_new << endl;
@@ -827,7 +827,7 @@ int main(void)
                 }
 
                 //cout << "T SPLIT PTS\n";
-                //cout << t_split[0] << " " << t_split[2] << " "<< t_split[4] << " " << t_split[1] << " "<< t_split[3] << " " << t_split[5] << endl;
+                cout << t_split[0] << " " << t_split[2] << " "<< t_split[4] << " " << t_split[1] << " "<< t_split[3] << " " << t_split[5] << endl;
 
                 //Determine state based on data assoc parameter, but only if valid measurement
                 if(valid_measurement && !first_time)

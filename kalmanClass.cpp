@@ -501,6 +501,12 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
     cout << "In AddNewCurve" << endl;
 	gettimeofday(&start, NULL);
         
+        
+        //CvMat * A1 = newMatrix(4,4,CV_64FC1);
+        //CvMat * A = newMatrix(4,4,CV_64FC1);
+        //GetSplitMatrices(0.5,A,A1);
+        //printMatrix(A);
+        
         double Tx = x->data.db[0];
         double Ty = x->data.db[1];
         double psi = x->data.db[5];
@@ -512,10 +518,10 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         
         //cvShowImage("P",P);
         //cvWaitKey(0);
-        //CvMat * Gznum = newMatrix(8,8,CV_64FC1);
-        //CvMat * Gxnum = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
-        //getGxCurveNumeric(Gxnum,z,x,A);
-        //getGzCurveNumeric(Gznum,z,x,A);
+        CvMat * Gznum = newMatrix(8,8,CV_64FC1);
+        CvMat * Gxnum = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
+        getGxCurveNumeric(Gxnum,z,x,A);
+        getGzCurveNumeric(Gznum,z,x,A);
         
         //Determine rot matrix
         for (int i = 0; i < 4; i++)
@@ -643,10 +649,10 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         //printMatrix(Gxnum);
         //cout << "Gx:" << endl;
         //printMatrix(Gx);
-        //cout << "Gznum:" << endl;
-        //printMatrix(Gznum);
-        //cout << "Gz:" << endl;
-        //printMatrix(Gz);
+        cout << "Gznum:" << endl;
+        printMatrix(Gznum);
+        cout << "Gz:" << endl;
+        printMatrix(Gz);
 
 
         cvTranspose(Gx,temp58);
@@ -662,6 +668,13 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         cvTranspose(Prr,temp5);
         cvMatMul(Gx,temp5,PN1r);
 
+        //printMatrix(Ainv);
+        //printMatrix(Hinv);       
+        //printMatrix(Gx);
+        //printMatrix(Prr);
+        //printMatrix(Gz);
+        //printMatrix(R1);
+        //printMatrix(PN1N1);
 
         //Expand array ROI and add new bits
 
@@ -726,6 +739,7 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
     //cout << "x after adding:\n";
     //printMatrix(x);
 
+    printMatrix(P);
 
     cout << "Exiting AddNewCurve" << endl;
 }
@@ -1407,7 +1421,6 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvShowImage("Pnew",P);
         //cvWaitKey(0);
     cout << "Exiting UpdateCurvesAndPoints" << endl;
-    printMatrix(P);
     //printMatrix(x);    
     //cvWaitKey(0);
 }

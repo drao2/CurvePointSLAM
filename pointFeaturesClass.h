@@ -52,7 +52,7 @@
 
 #define LM_MOTION_THRESH   100.0     //The amount the landmark is allowed to drift in the image per frame
 #define LM_PROXIMITY_THRESH     20.0    //For new landmarks, we reject them if they are this close to an existing one
-#define NUM_CURRENT_LANDMARKS   100
+#define NUM_CURRENT_LANDMARKS   10
 
 class PointFeaturesClass
 {
