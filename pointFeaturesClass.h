@@ -97,6 +97,12 @@ private:
         CvPoint2D32f temp_pts_curr[2][NUM_CURRENT_LANDMARKS];
         
         int num_landmarks_total;
+        
+         
+    
+        timeval t_start, t_stop;
+        timeval start, stop;
+        float elapsedTime;
 };
 
 

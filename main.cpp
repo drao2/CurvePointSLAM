@@ -12,6 +12,8 @@
 #include "dataAssocClass.h"
 #include "curveFittingClass.h"
 #include "pointFeaturesClass.h"
+#include <iostream>
+#include <fstream>
 
 #define ALPHA   1.0
 
@@ -43,98 +45,15 @@
 #define NUM_FRAMES_DA_RESET     10
 using namespace std;
 
-void mouse_left(int event, int x, int y, int flags, void * param);
-void mouse_right(int event, int x, int y, int flags, void * param);
-bool left_window_click, right_window_click, allow_callback;
-void mouse_left(int event, int x, int y, int flags, void * param)
-{
-    if (allow_callback)
-    {
-        switch (event)
-        {
-            case CV_EVENT_LBUTTONDOWN:
-            {
-                cout << "Left: " << x << "\t" << y << endl;
-                break;
-            }
-            case CV_EVENT_LBUTTONUP:
-            {
-                break;
-            }
-            case CV_EVENT_MOUSEMOVE:
-            {
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-    }
-}
-void mouse_right(int event, int x, int y, int flags, void * param)
-{
-    if (allow_callback)
-    {
-        switch (event)
-        {
-            case CV_EVENT_LBUTTONDOWN:
-            {
-                cout << "Right: " << x << "\t" << y << endl;
-                break;
-            }
-            case CV_EVENT_LBUTTONUP:
-            {
-                break;
-            }
-            case CV_EVENT_MOUSEMOVE:
-            {
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-    }
-}
-void plotGraph(double * y, int num_pts, int width, int height)
-{
-    cvNamedWindow("Graph1");
-    cvMoveWindow("Graph1",0,0);
-
-    IplImage * graph_image = cvCreateImage(cvSize(width,height),IPL_DEPTH_8U,3);
-
-    double y_max = 0.0;
-    for (int i = 0; i < num_pts; i++)
-    {
-        if (y[i] > y_max)            y_max = 45.0;//y[i];
-    }
-
-        cvLine(graph_image, cvPoint(0,height/2),cvPoint(width,height/2),CV_RGB(255,255,255),1,8,0);
-    for (int i = 0; i < num_pts; i++)
-    {
-        CvPoint plot_point = cvPoint(i*width/num_pts, height/2-0.75*y[i]*height/y_max);
-        cvCircle(graph_image, plot_point,1,CV_RGB(255,0,0));
-    }
-
-    cvShowImage("Graph1",graph_image);
-    cvWaitKey(10);
-
-}
-
-
-#include <iostream>
-#include <fstream>
-
 timeval t_start, t_stop;
 timeval start, stop;
 float elapsedTime;
-unsigned int binom[50][50];
 
 CvPoint last_pts[2];
 CvPoint current_pts[2];
 
+unsigned int binom[50][50];
+        
 int main(void)
 {
         int cam_index[2];
@@ -227,95 +146,20 @@ int main(void)
         D2->data.db[3] = D14;
         D2->data.db[4] = D15;
 
-            cvStereoRectify( M1, M2, D1, D2, imageSize,
-                R, T,
-                R1, R2, P1, P2, Q,
-                CV_CALIB_ZERO_DISPARITY,
-                1, imageSize, &(roi[0]), &(roi[1]));
-                        
-                //roi[1].x += imageSize.width;
-    //Precompute maps for cvRemap()
-            cvInitUndistortRectifyMap(M1,D1,R1,P1,mx[0],my[0]);
-            cvInitUndistortRectifyMap(M2,D2,R2,P2,mx[1],my[1]);
+        cvStereoRectify( M1, M2, D1, D2, imageSize,
+            R, T,
+            R1, R2, P1, P2, Q,
+            CV_CALIB_ZERO_DISPARITY,
+            1, imageSize, &(roi[0]), &(roi[1]));
+        //Precompute maps for cvRemap() - part of stereo rectification
+        cvInitUndistortRectifyMap(M1,D1,R1,P1,mx[0],my[0]);
+        cvInitUndistortRectifyMap(M2,D2,R2,P2,mx[1],my[1]);
 
 	for (int i = 0; i < NUM_CAMERAS; ++i)
 	{
 		camera[i].init_capture(cam_index[i]);	//+1 is so we dont use the laptop webcam
-	}
-
-
-//OPTICAL FLOW INIT
-        CvSize frame_size = cvSize(PIC_WIDTH,PIC_HEIGHT);
-        last_image[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
-        last_image[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
-        last_image_raw[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
-        last_image_raw[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
-        last_image_track[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
-        last_image_track[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
-        image_color[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
-        image_color[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
-        image[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
-        image[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
-        last_image_color[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
-        last_image_color[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
+	}        
         
-        cvNamedWindow("Left");
-        cvNamedWindow("Right");
-        cvMoveWindow("Left",0,0);
-        cvMoveWindow("Right",0,0);
-        cvSetMouseCallback( "Left", mouse_left, NULL );
-        cvSetMouseCallback( "Right", mouse_right, NULL );
-
-        left_window_click = false;
-        right_window_click = false;
-        allow_callback = false;
-
-//Get frame from camera
-        for (int n = 0; n < FRAMES_TO_SKIP; n++)
-        {
-            for (int i = 0; i < NUM_CAMERAS; ++i)
-            {
-                    image_raw[i] = camera[i].get_frame();
-            }
-        }
-        for (int i = 0; i < LEFT_IMAGE_LAG; ++i)
-        {
-                image_raw[0] = camera[0].get_frame();
-        }
-        if (LEFT_IMAGE_LAG < 0)
-        {
-            for (int i = 0; i < -LEFT_IMAGE_LAG; ++i)
-            {
-                    image_raw[1] = camera[1].get_frame();
-            }
-        }
-        
-        //CvVideoWriter *writer0 = cvCreateVideoWriter("out0.avi",CV_FOURCC('M', 'J', 'P', 'G'),10,cvSize(640,480));
-        //CvVideoWriter *writer1 = cvCreateVideoWriter("out1.avi",CV_FOURCC('M', 'J', 'P', 'G'),10,cvSize(640,480));
-        
-        //SAVE NEW AND FIXED VIDEO FILE
-        //while(1)
-        //{
-        //    for (int i = 0; i < NUM_CAMERAS; ++i)
-        //    {
-        //            image_raw[i] = camera[i].get_frame();
-        //    }
-        //    cvWriteFrame(writer0, image_raw[0]);
-        //    cvWriteFrame(writer1, image_raw[1]);
-        //}
-        
-        
-        
-        
-        
-
-            cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
-            cvRemap(image_raw[1], image_color[1], mx[1], my[1]);
-            //cvCopy(image_color[0],image_raw[0],NULL);
-            //cvCopy(image_color[1],image_raw[1],NULL);
-            cvCopy(image_raw[0],image_color[0],NULL);
-            cvCopy(image_raw[1],image_color[1],NULL);
-
         //Initialise binomial lookuptable
         for (int n = 0; n < 50; n++)
         {
@@ -330,10 +174,61 @@ int main(void)
             }
         }
 
+
+        //Initialise image data structs
+        CvSize frame_size = cvSize(PIC_WIDTH,PIC_HEIGHT);
+        last_image[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
+        last_image[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
+        last_image_raw[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
+        last_image_raw[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
+        last_image_track[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
+        last_image_track[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
+        image_color[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
+        image_color[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
+        image[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
+        image[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 1 );
+        last_image_color[0] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
+        last_image_color[1] = cvCreateImage( frame_size, IPL_DEPTH_8U, 3 );
+        
+        //Initialise windows
+        cvNamedWindow("Left");
+        cvNamedWindow("Right");
+        cvMoveWindow("Left",0,0);
+        cvMoveWindow("Right",320,0);
+
+        //Get frames from camera
+        for (int n = 0; n < FRAMES_TO_SKIP; n++)
+        {
+            for (int i = 0; i < NUM_CAMERAS; ++i)
+            {
+                    image_raw[i] = camera[i].get_frame();
+            }
+        }
+        
+        //Get extra from either left or right camera based on lag
+        //(Need frames to be synchronised)
+        for (int i = 0; i < LEFT_IMAGE_LAG; ++i)
+        {
+                image_raw[0] = camera[0].get_frame();
+        }
+        if (LEFT_IMAGE_LAG < 0)
+        {
+            for (int i = 0; i < -LEFT_IMAGE_LAG; ++i)
+            {
+                    image_raw[1] = camera[1].get_frame();
+            }
+        }
+        //Stereo rectify initial image
+        cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
+        cvRemap(image_raw[1], image_color[1], mx[1], my[1]);
+        cvCopy(image_raw[0],image_color[0],NULL);
+        cvCopy(image_raw[1],image_color[1],NULL);
+
         //Init RNG
         CvRandState randstate;
         cvRandInit(&randstate,0.1,0.0,0xffffffff,CV_RAND_NORMAL);
         
+        //Mats to store measurement vectors of different sizes
         CvMat *z8 = cvCreateMat(8,1,CV_64FC1);
         CvMat *z16 = cvCreateMat(19,1,CV_64FC1);
         CvMat *z = cvCreateMat(35,1,CV_64FC1);
@@ -344,9 +239,9 @@ int main(void)
         CvMat *z_left = cvCreateMat(16,1,CV_64FC1);
         CvMat *z_right = cvCreateMat(16,1,CV_64FC1);
         
-        std::vector<double> state_limits;
+        std::vector<double> state_limits;       //Stores the 'limits' of each curves (ie. what we've observed of it; full observation is 0 to 1)
 
-
+        //Curve control point transformation matrices
         CvMat * A1 = cvCreateMat(4,4,CV_64FC1);
         CvMat * A2 = cvCreateMat(4,4,CV_64FC1);
 	CvMat * A1l = cvCreateMat(4,4,CV_64FC1);
@@ -366,6 +261,8 @@ int main(void)
 
         int counter = 0;
         
+       
+        //Initialise guess params (just in case the first curve fit fails!)
         double params[19];
         for (int i = 0; i < 16; i++)
             params[i] = 0.0;
@@ -379,7 +276,7 @@ int main(void)
         params[17] = -0.2;
         params[18] = -2.0;
 
-                
+        //Flags to determine what to do with the left and right curves (state machine)
         char left_assoc_flag = ADD_FIRST_STATES;
         char right_assoc_flag = ADD_FIRST_STATES;
         bool partial_curve_observed[2] = {false, false};
@@ -433,8 +330,6 @@ int main(void)
             cvCopy(image_raw[1], last_image_raw[1], NULL);
             cvCvtColor(last_image_raw[0],last_image[0],CV_RGB2GRAY);
             cvCvtColor(last_image_raw[1],last_image[1],CV_RGB2GRAY);
-            //cvCopy(last_image_raw[0], last_image_color[0], NULL);
-            //cvCopy(last_image_raw[1], last_image_color[1], NULL);
             cvCopy(image_color[0], last_image_color[0], NULL);
             cvCopy(image_color[1], last_image_color[1], NULL);
 
@@ -447,7 +342,6 @@ int main(void)
 			image_raw[i] = camera[i].get_frame();
                         cvRemap(image_raw[i], image_color[i], mx[i], my[i]);
                         cvCopy(image_color[i],image_raw[i],NULL);
-                        //cvCopy(image_raw[i],image_color[i],NULL);
                         cvCvtColor(image_raw[i],image[i],CV_RGB2GRAY);
                 }
                 
@@ -458,8 +352,6 @@ int main(void)
                         curveMatcher[1].singleFrameTrack(last_image_track,image, roi[0]);
                 }
                 counter++;
-                //if (!first_time)
-                    //EKF->PredictKF();
             }
                 cvShowImage("Left",image_color[LEFT]);
                 cvShowImage("Right",image_color[RIGHT]);
@@ -474,10 +366,12 @@ int main(void)
             
             cvCopy(image_raw[0], image_color[0], NULL);
             cvCopy(image_raw[1], image_color[1], NULL);
-            if(!first_time && !valid_last_measurement)
+            
+//Get point measurements (only if not first time)
+            //Could also only do it if !valid_last_measurement
+            if(!first_time)
             {
                 pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
-                //cout << n_pts_existing << " " << n_pts_new << endl;
                 double phi = vodom_params[3];
                 double theta = vodom_params[4];
                 double psi = vodom_params[5];
@@ -485,29 +379,18 @@ int main(void)
                 t_12->data.db[1] = vodom_params[1];
                 t_12->data.db[2] = vodom_params[2];
                 generate_Reb(phi, theta, psi, R_12);
-                //EKF->PredictKF(R_12,t_12);
                 EKF->PredictKF();
             }
-            
-            //cvRemap(image_raw[0], image_color[0], mx[0], my[0]);
-            //cvRemap(image_raw[1], image_color[1], mx[1], my[1]);
 
 
 
-
-//Find features in camera images
+            //Find the edge points corresponding to curves in the images
             CvPoint2D32f map_endpts[] = {curveMatcher[0].map_endpt_tracked,curveMatcher[1].map_endpt_tracked};
             for (int i = 0; i < NUM_CAMERAS; ++i)
             {
                     features[i].find_features(image_raw[i],seg[i],i,&(roi[i]),&map_endpts[0]);
                     curveMatcher[i].map_endpt_tracked = map_endpts[i];
             }
-
-            //cvResetImageROI(image_color[0]);
-            //cvResetImageROI(image_color[1]);
-
-
-
 #ifndef NO_SLAM
             
             display_GUI->copy_images(&(image[0]));
@@ -517,22 +400,22 @@ int main(void)
 
 
 
-//PROCESS POINTS AND FIT CURVE
+//PROCESS POINTS TO MAKE THEM NEATER
+            //Also make sure the same amount is observed in both images
             std::vector<CvPoint> ** featuresL =features[LEFT].return_features();
             std::vector<CvPoint> ** featuresR =features[RIGHT].return_features();
 
-
-                CvMat * featuresLeftImage[2];
-                CvMat * featuresRightImage[2];
-                int left_y_cutoff[] = {MIN(TOP_Y_CUTOFF,curveMatcher[0].map_endpt_tracked.y),MIN(TOP_Y_CUTOFF,curveMatcher[1].map_endpt_tracked.y)};
-                if(first_time)
-                {
-                    left_y_cutoff[0] = TOP_Y_CUTOFF;
-                    left_y_cutoff[1] = TOP_Y_CUTOFF;                    
-                }
-                int RangeLeftImage[2][2] = { {0, featuresL[0]->size()-1}, {0, featuresL[1]->size()-1} };
-                int RangeRightImage[2][2] = { {0, featuresR[0]->size()-1}, {0, featuresR[1]->size()-1} };
-
+//Below: A lot of hacky stuff to make the lengths the same, etc!
+            CvMat * featuresLeftImage[2];
+            CvMat * featuresRightImage[2];
+            int left_y_cutoff[] = {MIN(TOP_Y_CUTOFF,curveMatcher[0].map_endpt_tracked.y),MIN(TOP_Y_CUTOFF,curveMatcher[1].map_endpt_tracked.y)};
+            if(first_time)
+            {
+                left_y_cutoff[0] = TOP_Y_CUTOFF;
+                left_y_cutoff[1] = TOP_Y_CUTOFF;                    
+            }
+            int RangeLeftImage[2][2] = { {0, featuresL[0]->size()-1}, {0, featuresL[1]->size()-1} };
+            int RangeRightImage[2][2] = { {0, featuresR[0]->size()-1}, {0, featuresR[1]->size()-1} };
 
             if (featuresL[0]->size() < 10 || featuresL[1]->size() < 10 || featuresR[0]->size() < 10 || featuresR[1]->size() < 10)
                 edges_detected = false;
@@ -729,6 +612,8 @@ int main(void)
             }
 
             CvMat * state_current = EKF->getState();
+            
+            //Only proceed if the above was successful and we have edges to work with
             if(edges_detected)
             {
                 //Copy features into CvMat form
@@ -758,6 +643,7 @@ int main(void)
                 double p[16], p_left[16], p_right[16];
                 double p_last[16], p_left_last[16], p_right_last[16];
 
+//PERFORM CURVE FITTING AND STORE THE PARAMS IN 'params'
                 curveFitter->fit_curve(&(params[0]), featuresLeftImage, featuresRightImage, display_GUI);
                 //valid_measurement = EKF->CheckValidMeasurement(params[16],params[17],params[18],frames_since_good_measurement);
                 if (curveFitter->fitting_error > ERROR_THRESHOLD)
@@ -789,6 +675,7 @@ int main(void)
                 translation[1] = 0.0;
                 translation[2] = params[18];
 
+                //Convert measured curve to image space, then display them on the images
                 control2coeffs(params,p);
                 control2coeffs(&(params[8]),&(p[8]));
                 poly_earth2image(&(p[0]), p_left, p_right, euler, translation);
@@ -809,9 +696,8 @@ int main(void)
 
                 display_GUI->display_images(image[0], image[1], featuresLeftImage, featuresRightImage, p_left, p_right,image_color[0], image_color[1]);
 
-// DETERMINE DATA ASSOCIATION
-
-
+                
+// DETERMINE DATA ASSOCIATION (getMatchT) TO FIND THE T-VALUES TO SPLIT AT
                 for (int i = 0; i < 6; i++)
                 {
                     last_t_split[i] = t_split[i];
@@ -829,7 +715,7 @@ int main(void)
                 //cout << "T SPLIT PTS\n";
                 cout << t_split[0] << " " << t_split[2] << " "<< t_split[4] << " " << t_split[1] << " "<< t_split[3] << " " << t_split[5] << endl;
 
-                //Determine state based on data assoc parameter, but only if valid measurement
+//Determine state based on data assoc parameter (if valid measurement)
                 if(valid_measurement && !first_time)
                 {
                     if (t_splitL[0] < -0.5)
@@ -963,10 +849,9 @@ int main(void)
                 cvShowImage("Right",image_color[RIGHT]);
                 cvShowImage("Last Left",last_image_color[LEFT]);
                 cvShowImage("Last Right",last_image_color[RIGHT]);
-                //cvWaitKey(10);
 
 
-//Figure out from data assoc what to do
+//Figure out from data assoc what to do (state machine)
 // Determine whether to just add states, or update, or both
                 if (left_assoc_flag == ADD_FIRST_STATES && right_assoc_flag == ADD_FIRST_STATES && valid_measurement)
                 {
@@ -1070,13 +955,11 @@ int main(void)
                                 z->data.db[i] = params[2*i];
                                 z->data.db[i+4] = params[2*i+1];
                             }
-                            //if (!n_pts_existing)
-                            {
+                            
                             EKF->AddNewCurve(z8,I4);
                             state_limits.push_back(1.0);
                             left_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
-                            }
                             break;
                         }
                         case ONLY_UPDATE_ONE_STATE:
@@ -1124,14 +1007,11 @@ int main(void)
                             //Add second curve as new state
                             for (int i = 0; i < 8; i++)
                                 z8->data.db[i] = z_left->data.db[i+8];
-                            //if (!n_pts_existing)
-                            {
+                            
                             EKF->AddNewCurve(z8,B1l);
                             state_limits.push_back(t_splitL[2]);
                             left_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
-                            }
-
                             break;
                         }
                         case UPDATE_TWO_STATES:
@@ -1156,7 +1036,6 @@ int main(void)
                         }
                     }
 
-
                     //UPDATE AND ADD RIGHT CURVES
                     switch (right_assoc_flag)
                     {
@@ -1169,14 +1048,11 @@ int main(void)
                                 z->data.db[i+8] = params[2*(i+4)];
                                 z->data.db[i+12] = params[2*(i+4)+1];
                             }
-
-                            //if (!n_pts_existing)
-                            {
+                            
                             EKF->AddNewCurve(z8,I4);
                             state_limits.push_back(1.0);
                             right_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
-                            }
                             break;
                         }
                         case ONLY_UPDATE_ONE_STATE:
@@ -1225,14 +1101,10 @@ int main(void)
                             for (int i = 0; i < 8; i++)
                                 z8->data.db[i] = z_right->data.db[i+8];
                             
-                            //if (!n_pts_existing)
-                            {
-                                EKF->AddNewCurve(z8,B1r);
+                            EKF->AddNewCurve(z8,B1r);
                             state_limits.push_back(t_splitR[2]);
                             right_curve_nums.push_back(num_map_curves);
                             num_map_curves++;
-                            }
-
                             break;
                         }
                         case UPDATE_TWO_STATES:
@@ -1257,7 +1129,7 @@ int main(void)
                         }
                     }
 
-
+//UPDATE EXISTING CURVES/POINTS IF NEEDED
                     if (num_curves_to_update > 0 || n_pts_existing > 0)
                     {
                         //num_curves_to_update = 0;
@@ -1273,6 +1145,7 @@ int main(void)
                     }
 
                 }
+//UPDATE ONLY POINTS IF CURVES ARE A FAIL
                 if (n_pts_existing > 0)
                     EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     
@@ -1297,31 +1170,27 @@ int main(void)
             else
                 valid_measurement = false;
             
-            
-            
-            //Add any new point measurements we've made
+//Add any new point measurements we've made
             EKF->AddNewPoints(&point_meas_new[0], n_pts_new);
             
-            //cout << edges_detected << " " << valid_measurement << endl;
-
-            state_current = EKF->getState();
-            //cout << "X:\n";
-            //EKF->printMatrix(state_current);
 
             //Display curves
+            state_current = EKF->getState();
             display_GUI->generate_map(state_current,&state_limits,z, &(EKF->curve_inds), &(EKF->point_inds), EKF->num_curves, EKF->num_points);
             //Print robot pose
             //cout << "X: " << state_current->data.db[0] << "\n" << "Y: " << state_current->data.db[1] << "\n" << "Z: " << state_current->data.db[2] << "\n"  << "Pitch: " << state_current->data.db[4]*180.0/PI << "\n" << "Roll: " << state_current->data.db[3]*180.0/PI << "\n" << "Yaw: " << state_current->data.db[5]*180.0/PI << "\n";
 #endif
-            cout << "Curve inds:\n";
+            /*cout << "Curve inds:\n";
             for (int i = 0; i < EKF->curve_inds.size(); i++)
                 cout << EKF->curve_inds.at(i) << " ";
             cout << endl;
             cout << "Point inds:\n";
             for (int i = 0; i < EKF->point_inds.size(); i++)
                 cout << EKF->point_inds.at(i) << " ";
-            cout << endl;
+            cout << endl;*/
 
+            
+            //Timing stuff, can use this when worrying about speed
             int frameTime = camera[0].getTime()+camera[1].getTime();
             int featureTime = features[0].getTime()+features[1].getTime();
             int dataAssocTime = curveMatcher[0].getTime()+curveMatcher[1].getTime();
@@ -1351,9 +1220,7 @@ int main(void)
                         (start.tv_sec*1000.0 + start.tv_usec/1000.0);
                         //cout << "TOTAL: " << elapsedTime << endl;
             gettimeofday(&start, NULL);
-
-            //cvShowImage("Left",image_color[LEFT]);
-            //cvShowImage("Right",image_color[RIGHT]);
+            
             cvWaitKey(10);
         }
 

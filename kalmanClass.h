@@ -16,22 +16,9 @@
 #include <malloc.h>
 
 #include "common.h"
-/*
-#define MEAS_COV 5.0 //Innovation
 
-#define VX_COV 0.5
-#define VY_COV 0.05
-#define VZ_COV 0.1
-#define WX_COV 0.1
-#define WY_COV 0.1
-#define WZ_COV 0.02
-#define PHI_MEAS_COV 0.2
-#define THETA_MEAS_COV 0.2
-#define Z_MEAS_COV 0.4
-*/
-
-#define MEAS_COV 1.0 //Innovation for curve cp meas (in m)
-#define PT_MEAS_COV 100.0 //Innovation for pt meas (in pixels)
+#define MEAS_COV 10.0 //Innovation for curve cp meas (in m)
+#define PT_MEAS_COV 1.0 //Innovation for pt meas (in pixels)
 
 #define VX_COV 0.05
 #define VY_COV 0.05
@@ -61,14 +48,12 @@ public:
         void AddFirstStates(CvMat * measurement);
 	void InitOOP(CvMat *);
 	void PredictKF();
-	void PredictKF(CvMat * R_predict, CvMat * T_predict);
 	void AddNewCurve(CvMat * measurement, CvMat * A);
 	void AddNewPoints(double * measurements, int n_pts);
         void UpdateNCurvesAndPoints(CvMat * z, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts);
         void UpdatePoints(double * point_meas, int * point_nums, int n_pts);
         void UpdateOOP(CvMat * z);
         bool CheckValidMeasurement(double phi, double theta, double z, int frames_since_good_measurement);
-	void GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvMat * A, CvMat * B, int num_curve1, int num_curve2);
 	void GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvMat * A, int num_curve);
 	void GetSplitMatrices(double t, CvMat * A1, CvMat * A2);
         CvMat * newMatrix(int rows, int cols, int type);
@@ -150,6 +135,7 @@ public:
 	CvMat * ROOP;
         CvMat * xcurrent8;
         CvMat * Pcurrent8;
+        CvMat * Prr;
 
 	CvMat * Fpose;
 	CvMat * Qpose;
@@ -162,30 +148,25 @@ public:
         CvMat * temp38;
         CvMat * temp83;
         CvMat * temp88;
-        CvMat * Prr;
 
-
+        //Curve transformation matrices (used in Jacobian computation)
         CvMat * Ainv;
         CvMat * Ainvzx;
         CvMat * Ainvzy;
         CvMat * zx;
         CvMat * zy;
 
+        //SLAM Jacobians for adding a new state
         CvMat * Gx;
         CvMat * Gz;
 
-
+        //Number of points/curves instate
         int num_curves;
         int num_points;
-        int num_curves_before_add;
-        int num_points_before_add;
         
-
+        //Timing variables
 	timeval start, stop;
 	float elapsedTime;
-
-        double last_position[3];
-        
         
         //These variables denote where in the state vector each curve and point is
         //Each curve is 8x1, point is 3x1
