@@ -2,59 +2,79 @@
 #include "common.h"
 
 
+//TODO: FIX UP CALIBRATION STUFF - the body2stereo and reverse don't reproduce the same thing
+//TODO: FIX UP RANSAC COST STUFF - could only use 2 points, get a horribly wrong estimate but a good cost
+
 using namespace std;
 
 PointFeaturesClass::PointFeaturesClass()
 {
-        //Data structures for this class
         CvSize frame_size = cvSize(PIC_WIDTH,PIC_HEIGHT);
 
-        //For getting Shi-Tomasi features
         eig_image = cvCreateImage( frame_size, IPL_DEPTH_32F, 1 );
         temp_image = cvCreateImage( frame_size, IPL_DEPTH_32F, 1 );
         pyramid1 = cvCreateImage(cvSize(PIC_WIDTH+8,PIC_HEIGHT/3), IPL_DEPTH_8U, 1);
         pyramid2 = cvCreateImage(cvSize(PIC_WIDTH+8,PIC_HEIGHT/3), IPL_DEPTH_8U, 1);
+        //srand(0);
+	//return;
         
-        //For optical flow (LK) tracking of existing features
         optical_flow_window = cvSize(21,21);
         optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .0001 );
         
-        //Num of points in previous and current image
         num_pts_last = 0;
         num_pts_curr = 0;
         
-        num_landmarks_total = 0;        //Num points tracked in total
+        num_landmarks_total = 0;
 }
 
 PointFeaturesClass::~PointFeaturesClass()
 {
-    
+        
+        //optical_flow_window = cvSize(25,25);
+        //optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .01 );
+	//return;
 }
 
 void PointFeaturesClass::getPointMeasurements(IplImage ** last_image, IplImage ** image, IplImage ** image_color, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondences)
-{
-    gettimeofday(&start, NULL);
+{ 
     
-    //Update num frames since last observed
-    for (int i = 0; i < existing_landmarks.size(); i++)
-        existing_landmarks[i].frames_since_obs++;
+timeval t_start, t_stop;
+timeval start, stop;
+float elapsedTime;
+        for (int i = 0; i < existing_landmarks.size(); i++)
+            existing_landmarks[i].frames_since_obs++;
 
-    //First, copy 'current' to 'last' landmarks observed
-    for (int i = 0; i < num_pts_curr; i++)
-    {
-        pts_last[LEFT][i] = pts_curr[LEFT][i];
-        pts_last[RIGHT][i] = pts_curr[RIGHT][i];
-        matches_last[i] = matches_curr[i];
-    }
-    num_pts_last = num_pts_curr;
-    num_pts_curr = 0;
-    //Track all points from the last image frame, discard bad tracks
-    trackExistingLandmarks(last_image, image, meas_existing, num_existing_meas, correspondences);
-    
-    //Find new landmarks to make up the rest (keep a constant total number tracked)
-    findNewLandmarks(image, meas_new, num_new_meas);
+        //First, copy 'current' to 'last' landmarks observed
+        for (int i = 0; i < num_pts_curr; i++)
+        {
+            pts_last[LEFT][i] = pts_curr[LEFT][i];
+            pts_last[RIGHT][i] = pts_curr[RIGHT][i];
+            matches_last[i] = matches_curr[i];
+        }
+        num_pts_last = num_pts_curr;
+        num_pts_curr = 0;
+        gettimeofday(&start, NULL);
+        trackExistingLandmarks(last_image, image, meas_existing, num_existing_meas, correspondences);
+        findNewLandmarks(image, meas_new, num_new_meas);
+        //getStereoPts(image, stereo_pts, &num_total_meas);
+        //determineDataAssoc(image, stereo_pts, num_total_meas, meas_new, num_new_meas, meas_existing, num_existing_meas, correspondences);
         
-    //Plots to debug
+        
+        
+        
+        
+        gettimeofday(&stop, NULL);
+        
+	elapsedTime = (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
+		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
+        
+        //cout << "Params: ";
+        //for (int i = 0; i < 6; i++)
+        //    cout << params[i] << " ";
+        //cout << endl;
+        //cout << "Elapsed Time: " << elapsedTime << endl;
+        
+                //Plots to debug
     CvFont font;
     cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX , 0.5f, 0.5f, 0, 1, 8);
     char tstring[5];
@@ -81,11 +101,6 @@ void PointFeaturesClass::getPointMeasurements(IplImage ** last_image, IplImage *
     cvShowImage("Left",image_color[LEFT]);
     cvShowImage("Right",image_color[RIGHT]);
     cvWaitKey(10);
-    
-    gettimeofday(&stop, NULL);
-
-    elapsedTime = (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
-            (start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
 
 
@@ -124,6 +139,9 @@ void PointFeaturesClass::trackExistingLandmarks(IplImage ** last_image, IplImage
                                 cvSetImageROI(image[LEFT],cvRect(temp_pts_curr[LEFT][i].x-PATCH_HALF,temp_pts_curr[LEFT][i].y-PATCH_HALF,PATCH_SIZE,PATCH_SIZE));
                                 cvSetImageROI(image[RIGHT],cvRect(temp_pts_curr[RIGHT][i].x-PATCH_HALF,temp_pts_curr[RIGHT][i].y-PATCH_HALF,PATCH_SIZE,PATCH_SIZE));
 
+                                //cout << image[LEFT]->roi->width << " " << image[LEFT]->roi->height << endl;
+                                //cout << image[RIGHT]->roi->width << " " << image[RIGHT]->roi->height << endl << endl;
+
                                 if(cvNorm(image[LEFT],image[RIGHT]) < SSD_THRESH)
                                 {
                                     pts_curr[LEFT][num_pts_curr] = temp_pts_curr[LEFT][i];
@@ -159,11 +177,11 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
         //Find left image features
         CvPoint2D32f image_features_left[MAX_VODOM_FEATURES];
         int num_features_left = MAX_VODOM_FEATURES;
-        cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.001, 20, NULL, 7, 0, 0.04);
+        cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.0001, 5, NULL, 7, 0, 0.04);
         //Find right image features
         CvPoint2D32f image_features_right[MAX_VODOM_FEATURES];
         int num_features_right = MAX_VODOM_FEATURES;
-        cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.001, 20, NULL, 7, 0, 0.04);
+        cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.0001, 5, NULL, 7, 0, 0.04);
 
         //Remove ones that are too close to the edges
         for (int i = 0; i < num_features_left; i++)
@@ -216,6 +234,7 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
         if (num_features_left != 0 && num_features_right != 0)
         {
             //Find stereo matches (compute SSDs and construct score matrix)
+            //cout << num_last_features_left << " " << num_last_features_right << endl;
             CvMat * score = cvCreateMat(num_features_left,num_features_right,CV_32F);
             int left_bestmatch[num_features_left];
             int right_bestmatch[num_features_right];
@@ -232,6 +251,8 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
                     {
                         cvSetImageROI(image[LEFT],cvRect(left_feat.x-WINDOW_HALF,left_feat.y-WINDOW_HALF,WINDOW_SIZE,WINDOW_SIZE));
                         cvSetImageROI(image[RIGHT],cvRect(right_feat.x-WINDOW_HALF,right_feat.y-WINDOW_HALF,WINDOW_SIZE,WINDOW_SIZE));
+                        //cout << left_feat.x << " " << left_feat.y << endl;
+                        //cout << right_feat.x << " " << right_feat.y << endl;
                         cvmSet(score,i,j,cvNorm(image[LEFT],image[RIGHT]));
 
                         cvResetImageROI(image[LEFT]);
@@ -304,7 +325,7 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
             
             //Copy whatever we need (only to make up the rest) to pts_curr and meas_new
             //Also update matches_curr
-            // TODO: SORT BY HOW GOOD THEY ARE!!!! This way, if we take the first n, they are the best n landmarks
+            // TODO: SORT BY HOW GOOD THEY ARE!!!!
             for (int i = 0; i < num_features_to_add; i++)
             {
                 pts_curr[LEFT][num_pts_curr] = matched_features_left[i];
@@ -321,6 +342,7 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
                 n_new_pts++;
             } 
             *num_new_meas = n_new_pts;
+            //cout << "Num stereo matched features: " << num_matched_features << endl;
         }
     }
 }
