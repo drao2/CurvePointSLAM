@@ -233,7 +233,7 @@ double * DataAssocClass::getMatchT(CvMat * curve_features,  IplImage ** last_ima
     
         //for (int i = 0; i < NUM_TRACK_PTS; i++)
         //{
-            //cvCircle(image_color[0], cvPoint(temp_pt.x+5*(track_pts_a[i].x-track_pts[i].x),temp_pt.y+5*(track_pts_a[i].y-track_pts[i].y)), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );
+        //    cvCircle(image_color[0], cvPoint(temp_pt.x+5*(track_pts_a[i].x-track_pts[i].x),temp_pt.y+5*(track_pts_a[i].y-track_pts[i].y)), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );
         //}
     
     
@@ -296,13 +296,14 @@ if (!reset_data_assoc)
     cvMatMul(At,b,xparams);
     cvMatMul(AtAinv,xparams,xparams);
     
-    current_m = last_m*xparams->data.db[0];
-    current_b = xparams->data.db[0]*last_b+xparams->data.db[1];
     last_m = current_m;
     last_b = current_b;
+    current_m = last_m*xparams->data.db[0];
+    current_b = xparams->data.db[0]*last_b+xparams->data.db[1];
     //current_m = xparams->data.db[0];
     //current_b = xparams->data.db[1];
-    //cout << "New: ti = " << -current_b/current_m << "\ttz = " << current_m+current_b << "\ttj = " << (1.0-current_b)/current_m << endl;
+    //cout << "Current m = " << current_m << "\tCurrent b = " << current_b << "\tLast m = " << last_m << "\tLast b = " << last_b << endl;
+    //cout << "New: ti = " << -current_b/current_m << "\ttz = " << current_m+current_b << "\ttj = " << (1.0-current_b)/current_m-1.0 << endl;
     
     tz = current_m+current_b;
     double new_map_endpt[] = {p_left[0]*pow(tz,3.0)+p_left[1]*pow(tz,2.0)+p_left[2]*tz+p_left[3] , p_left[4]*pow(tz,3.0)+p_left[5]*pow(tz,2.0)+p_left[6]*tz+p_left[7]};
@@ -377,6 +378,13 @@ else
 
                 t_split[2] = (1-t_split[0])*(1-t_split[1])/t_split[1];
             }
+        
+        
+        t_split[0] = -current_b/current_m;
+        t_split[1] = current_m+current_b;
+        t_split[2] = (1.0-current_b)/current_m - 1.0;
+        
+        //cout << t_split[0] << " " << t_split[1] << " " << t_split[2] << endl;
         }
 
         t_split[0] = 1-t_split[1];

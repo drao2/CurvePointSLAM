@@ -4,6 +4,7 @@
 #include <cvaux.h>
 #include <highgui.h>
 #include <sys/time.h>
+#include <math.h>
 #include "common.h"
 #include "kalmanClass.h"
 #include "capture.h"
@@ -15,7 +16,7 @@
 #include <iostream>
 #include <fstream>
 
-#define ALPHA   1.0
+//#define USE_POINTS              //Whether or not point features should be used
 
 #ifdef QUAD
         #define LEFT_IMAGE_LAG 0
@@ -43,6 +44,12 @@
 #define FRAMES_TO_SKIP  150
 #define LENGTH_EACH_CURVE  75
 #define NUM_FRAMES_DA_RESET     10
+
+
+#define CURVE_MIN_OBS   0.0     //Min amount of a curve that needs to be observed before it is introduced
+
+
+
 using namespace std;
 
 timeval t_start, t_stop;
@@ -298,29 +305,28 @@ int main(void)
         bool valid_measurement = true;
         bool valid_last_measurement = true;
         int frames_since_good_measurement = 0;
-
-        //Vodom Pose variables
-        double vodom_params[6] = {0.0};
-        CvMat * R_12 = cvCreateMat(3,3,CV_64FC1);
-        cvSetZero(R_12);
-        cvSetZero(R_12);
-        R_12->data.db[0] = 1.0;
-        R_12->data.db[4] = 1.0;
-        R_12->data.db[8] = 1.0;
-        CvMat * t_12 = cvCreateMat(3,1,CV_64FC1);
-        cvSetZero(t_12);
+        
+        
+        double t_split_default[] = {0.0,0.0,0.0};
+        double * t_splitL = &t_split_default[0];
+        double * t_splitR = &t_split_default[0];
+        
+        
        
         int count = 0;
         while(1)
 	{
             count++;
-            cout << count << endl;
+            cout << valid_measurement << " " << frames_since_good_measurement << endl;
             if(valid_measurement)
                 frames_since_good_measurement = 1;
             else
                 frames_since_good_measurement++;
             if (edges_detected = false || first_time || frames_since_good_measurement >= NUM_FRAMES_DA_RESET)
+            {
                 reset_data_assoc = true;
+                valid_measurement = true;
+            }
             else
                 reset_data_assoc = false;
             
@@ -371,14 +377,10 @@ int main(void)
             //Could also only do it if !valid_last_measurement
             if(!first_time)
             {
+#ifdef USE_POINTS
                 pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
-                double phi = vodom_params[3];
-                double theta = vodom_params[4];
-                double psi = vodom_params[5];
-                t_12->data.db[0] = vodom_params[0];
-                t_12->data.db[1] = vodom_params[1];
-                t_12->data.db[2] = vodom_params[2];
-                generate_Reb(phi, theta, psi, R_12);
+#endif
+
                 EKF->PredictKF();
             }
 
@@ -646,9 +648,21 @@ int main(void)
 //PERFORM CURVE FITTING AND STORE THE PARAMS IN 'params'
                 curveFitter->fit_curve(&(params[0]), featuresLeftImage, featuresRightImage, display_GUI);
                 //valid_measurement = EKF->CheckValidMeasurement(params[16],params[17],params[18],frames_since_good_measurement);
+                
                 if (curveFitter->fitting_error > ERROR_THRESHOLD)
                     valid_measurement = false;
-
+                else
+                {
+                    for (int i = 0; i < 19; i++)
+                    {
+                        if (isnan(params[i]))
+                        {
+                            valid_measurement = false;
+                            break;
+                        }
+                    }
+                }
+                
                 for (int i = 0; i < 16; i++)
                 {
                     if (fabs(params[i]) > 50.0)
@@ -663,58 +677,60 @@ int main(void)
                 if(first_time)
                     valid_measurement = true;
 
-                        double theta = params[16];
-                        double phi = params[17];
-                        double height = params[18];
+                double theta = params[16];
+                double phi = params[17];
+                double height = params[18];
+
+                if(valid_measurement)
+                {
+                    euler[0] = 0.0;
+                    euler[1] = params[16];
+                    euler[2] = params[17];
+                    translation[0] = 0.0;
+                    translation[1] = 0.0;
+                    translation[2] = params[18];
+
+                    //Convert measured curve to image space, then display them on the images
+                    control2coeffs(params,p);
+                    control2coeffs(&(params[8]),&(p[8]));
+                    poly_earth2image(&(p[0]), p_left, p_right, euler, translation);
+                    poly_earth2image(&(p[8]), &(p_left[8]), &(p_right[8]), euler, translation);
+
+                    euler_last[0] = 0.0;
+                    euler_last[1] = last_params[16];
+                    euler_last[2] = last_params[17];
+                    translation_last[0] = 0.0;
+                    translation_last[1] = 0.0;
+                    translation_last[2] = last_params[18];
+
+                    control2coeffs(last_params,p_last);
+                    control2coeffs(&(last_params[8]),&(p_last[8]));
+                    poly_earth2image(&(p_last[0]), p_left_last, p_right_last, euler_last, translation_last);
+                    poly_earth2image(&(p_last[8]), &(p_left_last[8]), &(p_right_last[8]), euler_last, translation_last);
 
 
-                euler[0] = 0.0;
-                euler[1] = params[16];
-                euler[2] = params[17];
-                translation[0] = 0.0;
-                translation[1] = 0.0;
-                translation[2] = params[18];
-
-                //Convert measured curve to image space, then display them on the images
-                control2coeffs(params,p);
-                control2coeffs(&(params[8]),&(p[8]));
-                poly_earth2image(&(p[0]), p_left, p_right, euler, translation);
-                poly_earth2image(&(p[8]), &(p_left[8]), &(p_right[8]), euler, translation);
-
-                euler_last[0] = 0.0;
-                euler_last[1] = last_params[16];
-                euler_last[2] = last_params[17];
-                translation_last[0] = 0.0;
-                translation_last[1] = 0.0;
-                translation_last[2] = last_params[18];
-
-                control2coeffs(last_params,p_last);
-                control2coeffs(&(last_params[8]),&(p_last[8]));
-                poly_earth2image(&(p_last[0]), p_left_last, p_right_last, euler_last, translation_last);
-                poly_earth2image(&(p_last[8]), &(p_left_last[8]), &(p_right_last[8]), euler_last, translation_last);
+                    display_GUI->display_images(image[0], image[1], featuresLeftImage, featuresRightImage, p_left, p_right,image_color[0], image_color[1]);
 
 
-                display_GUI->display_images(image[0], image[1], featuresLeftImage, featuresRightImage, p_left, p_right,image_color[0], image_color[1]);
+    // DETERMINE DATA ASSOCIATION (getMatchT) TO FIND THE T-VALUES TO SPLIT AT
+                    for (int i = 0; i < 6; i++)
+                    {
+                        last_t_split[i] = t_split[i];
+                    }
 
+                    t_splitL = curveMatcher[0].getMatchT( featuresLeftImage[0], &(last_image[0]), &(last_image_track[0]),&(image[0]),&(last_image_color[0]),&(image_color[0]),&(last_params[0]), &(params[0]), 0, &left_assoc_flag, reset_data_assoc);
+                    t_splitR = curveMatcher[1].getMatchT( featuresLeftImage[1], &(last_image[0]), &(last_image_track[0]),&(image[0]),&(last_image_color[0]),&(image_color[0]),&(last_params[0]), &(params[0]), 1, &right_assoc_flag, reset_data_assoc);
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        t_split[2*i] = t_splitL[i];
+                        t_split[2*i+1] = t_splitR[i];
+                    }
+
+                    //cout << "T SPLIT PTS\n";
+                    //cout << t_split[0] << " " << t_split[2] << " "<< t_split[4] << " " << t_split[1] << " "<< t_split[3] << " " << t_split[5] << endl;
+                }
                 
-// DETERMINE DATA ASSOCIATION (getMatchT) TO FIND THE T-VALUES TO SPLIT AT
-                for (int i = 0; i < 6; i++)
-                {
-                    last_t_split[i] = t_split[i];
-                }
-
-                double * t_splitL = curveMatcher[0].getMatchT( featuresLeftImage[0], &(last_image[0]), &(last_image_track[0]),&(image[0]),&(last_image_color[0]),&(image_color[0]),&(last_params[0]), &(params[0]), 0, &left_assoc_flag, reset_data_assoc);
-                double * t_splitR = curveMatcher[1].getMatchT( featuresLeftImage[1], &(last_image[0]), &(last_image_track[0]),&(image[0]),&(last_image_color[0]),&(image_color[0]),&(last_params[0]), &(params[0]), 1, &right_assoc_flag, reset_data_assoc);
-
-                for (int i = 0; i < 3; i++)
-                {
-                    t_split[2*i] = t_splitL[i];
-                    t_split[2*i+1] = t_splitR[i];
-                }
-
-                //cout << "T SPLIT PTS\n";
-                cout << t_split[0] << " " << t_split[2] << " "<< t_split[4] << " " << t_split[1] << " "<< t_split[3] << " " << t_split[5] << endl;
-
 //Determine state based on data assoc parameter (if valid measurement)
                 if(valid_measurement && !first_time)
                 {
@@ -999,19 +1015,24 @@ int main(void)
                             }
 
                             correspondence_matrices.push_back(A2l);
-                            state_limits.at(*(left_curve_nums.end()-1)) = t_splitL[2];
+                            state_limits.at(*(left_curve_nums.end()-1)) = 1.0;
                             curves_to_update.push_back(*(left_curve_nums.end()-1));
                             num_curves_to_update++;
 
 
-                            //Add second curve as new state
-                            for (int i = 0; i < 8; i++)
-                                z8->data.db[i] = z_left->data.db[i+8];
-                            
-                            EKF->AddNewCurve(z8,B1l);
-                            state_limits.push_back(t_splitL[2]);
-                            left_curve_nums.push_back(num_map_curves);
-                            num_map_curves++;
+                            //Add second curve as new state (but only if enough of it has been observed)
+                            if (t_splitL[2] > CURVE_MIN_OBS)
+                            {
+                                for (int i = 0; i < 8; i++)
+                                    z8->data.db[i] = z_left->data.db[i+8];
+
+                                EKF->AddNewCurve(z8,B1l);
+                                state_limits.push_back(t_splitL[2]);
+                                left_curve_nums.push_back(num_map_curves);
+                                num_map_curves++;
+                            }
+                            else
+                                partial_curve_observed[0] = false;
                             break;
                         }
                         case UPDATE_TWO_STATES:
@@ -1097,14 +1118,19 @@ int main(void)
                             num_curves_to_update++;
 
 
-                            //Add second curve as new state
-                            for (int i = 0; i < 8; i++)
-                                z8->data.db[i] = z_right->data.db[i+8];
-                            
-                            EKF->AddNewCurve(z8,B1r);
-                            state_limits.push_back(t_splitR[2]);
-                            right_curve_nums.push_back(num_map_curves);
-                            num_map_curves++;
+                            //Add second curve as new state (but only if enough of it has been observed)
+                            if (t_splitR[2] > CURVE_MIN_OBS)
+                            {
+                                for (int i = 0; i < 8; i++)
+                                        z8->data.db[i] = z_right->data.db[i+8];
+
+                                EKF->AddNewCurve(z8,B1r);
+                                state_limits.push_back(t_splitR[2]);
+                                right_curve_nums.push_back(num_map_curves);
+                                num_map_curves++;
+                            }
+                            else
+                                partial_curve_observed[1] = false;
                             break;
                         }
                         case UPDATE_TWO_STATES:
@@ -1140,7 +1166,6 @@ int main(void)
                         //n_pts_existing = MIN(10,n_pts_existing);
                         //EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],n_pts_existing);
                         EKF->UpdateNCurvesAndPoints(z, num_curves_to_update, &(correspondence_matrices),&(curves_to_update),&point_meas_existing[0],&correspondences[0],0);
-                        //EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                         //EKF->UpdatePoints(&point_meas_existing[0],&correspondences[0],n_pts_existing);
                     }
 

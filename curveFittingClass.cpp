@@ -935,6 +935,7 @@ void image2earth_right(double * earth_pt, double * image_pt, double * euler, dou
 
 void closest_bezier_pt(double * p, double * pt, double * nearest_pt, double * out)
 {
+
     //Find coefficients of fifth order polynomial in t, using p
 
         gettimeofday(&start, NULL);
@@ -966,7 +967,16 @@ void closest_bezier_pt(double * p, double * pt, double * nearest_pt, double * ou
    for (int i = 0; i < n; i++)
        poly2[i] = poly[i];
 
-   gsl_poly_complex_solve (poly2, n, w[n-1], roots);
+   cout << "1\n";
+   try
+   {
+       int QRresult = gsl_poly_complex_solve (poly2, n, w[n-1], roots);
+   }
+   catch(...)
+   {
+       cout << "Root solving failed to converge\n";
+   }
+   cout << "2\n";
 
        double min_dist_sq = 10000000.0;
        double t_best = 0.0;

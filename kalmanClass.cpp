@@ -493,6 +493,8 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
         cvReleaseMat(&ones);
         cvReleaseMat(&temp58);
         cvReleaseMat(&temp5);
+        
+        //printMatrix(P);
 
 	gettimeofday(&stop, NULL);
 	elapsedTime += (stop.tv_sec*1000.0 + stop.tv_usec/1000.0) -
