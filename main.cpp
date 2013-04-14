@@ -43,10 +43,11 @@
 //#define FRAMES_TO_SKIP  3101
 #define FRAMES_TO_SKIP  150
 #define LENGTH_EACH_CURVE  75
-#define NUM_FRAMES_DA_RESET     10
+#define NUM_FRAMES_DA_RESET     10       //Number of frames without a valid curve measurement after which 
+//we reset the data association and start with new curves
 
 
-#define CURVE_MIN_OBS   0.0     //Min amount of a curve that needs to be observed before it is introduced
+#define CURVE_MIN_OBS   0.5     //Min amount of a curve that needs to be observed before it is introduced
 
 
 
@@ -305,6 +306,7 @@ int main(void)
         bool valid_measurement = true;
         bool valid_last_measurement = true;
         int frames_since_good_measurement = 0;
+        bool use_points = false;        //Flag we set on the fly to decide if we need points or not
         
         
         double t_split_default[] = {0.0,0.0,0.0};
@@ -319,13 +321,21 @@ int main(void)
             count++;
             cout << valid_measurement << " " << frames_since_good_measurement << endl;
             if(valid_measurement)
+            {
                 frames_since_good_measurement = 1;
+                use_points = false;
+            }
             else
                 frames_since_good_measurement++;
-            if (edges_detected = false || first_time || frames_since_good_measurement >= NUM_FRAMES_DA_RESET)
+            if (edges_detected = false || first_time)
             {
                 reset_data_assoc = true;
                 valid_measurement = true;
+            }
+            else if (frames_since_good_measurement >= NUM_FRAMES_DA_RESET)
+            {
+                reset_data_assoc = true;
+                use_points = true;
             }
             else
                 reset_data_assoc = false;
@@ -373,13 +383,11 @@ int main(void)
             cvCopy(image_raw[0], image_color[0], NULL);
             cvCopy(image_raw[1], image_color[1], NULL);
             
-//Get point measurements (only if not first time)
-            //Could also only do it if !valid_last_measurement
+            //Get point measurements (only if not first time and !valid_last_measurement
             if(!first_time)
             {
-#ifdef USE_POINTS
-                pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
-#endif
+                if (use_points) //Only get/track point measurements if we need to
+                        pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
 
                 EKF->PredictKF();
             }

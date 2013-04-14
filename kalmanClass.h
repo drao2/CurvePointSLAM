@@ -25,7 +25,7 @@
 #define VZ_COV 0.5
 #define WX_COV 0.1
 #define WY_COV 0.1
-#define WZ_COV 0.002
+#define WZ_COV 0.02
 #define PHI_MEAS_COV 0.1
 #define THETA_MEAS_COV 0.1
 #define Z_MEAS_COV 0.2
