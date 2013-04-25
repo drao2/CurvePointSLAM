@@ -7,10 +7,11 @@
 #include <cxcore.h>
 #include <cxmisc.h>
 #include <ml.h>
-#include <cvwimage.h>
+//#include <cvwimage.h>
 //#include <video/tracking.hpp>
 //#include <video/video.hpp>
 
+//#include <opencv.hpp>
 
 
 #include <deque>

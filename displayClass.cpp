@@ -217,16 +217,16 @@ void DisplayClass::display_images(IplImage* image_left, IplImage* image_right, C
            double xval = p_left[0]*pow(t,3.0)+p_left[1]*pow(t,2.0)+p_left[2]*t+p_left[3]-POINT_OFFSET;
            double yval = p_left[4]*pow(t,3.0)+p_left[5]*pow(t,2.0)+p_left[6]*t+p_left[7];
 
-           //cvCircle(image_color_left,cvPoint(xval,yval),1,CV_RGB(255,255,255));
-    		//cvCircle(image_out_left,cvPoint(xval,yval),1,CV_RGB(255,255,255));
+           cvCircle(image_color_left,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
+    		cvCircle(image_out_left,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
     }
     for (double t = 0.0; t <= 1.0; t += 0.01)
     {
            double xval = p_right[0]*pow(t,3.0)+p_right[1]*pow(t,2.0)+p_right[2]*t+p_right[3]+POINT_OFFSET;
            double yval = p_right[4]*pow(t,3.0)+p_right[5]*pow(t,2.0)+p_right[6]*t+p_right[7];
 
-           //cvCircle(image_color_right,cvPoint(xval,yval),1,CV_RGB(255,255,255));
-    		//cvCircle(image_out_right,cvPoint(xval,yval),1,CV_RGB(255,255,255));
+           cvCircle(image_color_right,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
+    		cvCircle(image_out_right,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
     }
 
 
@@ -235,16 +235,16 @@ void DisplayClass::display_images(IplImage* image_left, IplImage* image_right, C
            double xval = p_left[8]*pow(t,3.0)+p_left[9]*pow(t,2.0)+p_left[10]*t+p_left[11]-POINT_OFFSET;
            double yval = p_left[12]*pow(t,3.0)+p_left[13]*pow(t,2.0)+p_left[14]*t+p_left[15];
 
-           //cvCircle(image_color_left,cvPoint(xval,yval),1,CV_RGB(255,255,255));
-    		//cvCircle(image_out_left,cvPoint(xval,yval),1,CV_RGB(255,255,255));
+           cvCircle(image_color_left,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
+    		cvCircle(image_out_left,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
     }
     for (double t = 0.0; t <= 1.0; t += 0.01)
     {
            double xval = p_right[8]*pow(t,3.0)+p_right[9]*pow(t,2.0)+p_right[10]*t+p_right[11]+POINT_OFFSET;
            double yval = p_right[12]*pow(t,3.0)+p_right[13]*pow(t,2.0)+p_right[14]*t+p_right[15];
 
-           //cvCircle(image_color_right,cvPoint(xval,yval),1,CV_RGB(255,255,255));
-    		//cvCircle(image_out_right,cvPoint(xval,yval),1,CV_RGB(255,255,255));
+           cvCircle(image_color_right,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
+    		cvCircle(image_out_right,cvPoint(xval,yval),1,CV_RGB(255*t,255*t,255*t));
     }
 /*
     //Replot the answer we get back to images

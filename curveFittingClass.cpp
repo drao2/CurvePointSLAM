@@ -967,7 +967,6 @@ void closest_bezier_pt(double * p, double * pt, double * nearest_pt, double * ou
    for (int i = 0; i < n; i++)
        poly2[i] = poly[i];
 
-   cout << "1\n";
    try
    {
        int QRresult = gsl_poly_complex_solve (poly2, n, w[n-1], roots);
@@ -976,7 +975,6 @@ void closest_bezier_pt(double * p, double * pt, double * nearest_pt, double * ou
    {
        cout << "Root solving failed to converge\n";
    }
-   cout << "2\n";
 
        double min_dist_sq = 10000000.0;
        double t_best = 0.0;

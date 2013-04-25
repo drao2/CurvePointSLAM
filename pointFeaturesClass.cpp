@@ -54,6 +54,8 @@ float elapsedTime;
         num_pts_last = num_pts_curr;
         num_pts_curr = 0;
         gettimeofday(&start, NULL);
+        
+        //Track existing points and Add new ones to make up a constant number o total tracked points
         trackExistingLandmarks(last_image, image, meas_existing, num_existing_meas, correspondences);
         findNewLandmarks(image, meas_new, num_new_meas);
         //getStereoPts(image, stereo_pts, &num_total_meas);

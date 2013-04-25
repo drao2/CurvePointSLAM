@@ -319,7 +319,7 @@ int main(void)
         while(1)
 	{
             count++;
-            cout << valid_measurement << " " << frames_since_good_measurement << endl;
+            //cout << valid_measurement << " " << frames_since_good_measurement << endl;
             if(valid_measurement)
             {
                 frames_since_good_measurement = 1;

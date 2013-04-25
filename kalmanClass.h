@@ -3,9 +3,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-//#include <cv.h>
-//#include <cvaux.h>
-//#include <highgui.h>
 #include <string>
 #include <iostream>
 #include "sys/time.h"
@@ -20,12 +17,12 @@
 #define MEAS_COV 10.0 //Innovation for curve cp meas (in m)
 #define PT_MEAS_COV 1.0 //Innovation for pt meas (in pixels)
 
-#define VX_COV 0.05
-#define VY_COV 0.05
+#define VX_COV 0.2
+#define VY_COV 0.2
 #define VZ_COV 0.5
 #define WX_COV 0.1
 #define WY_COV 0.1
-#define WZ_COV 0.02
+#define WZ_COV 0.1
 #define PHI_MEAS_COV 0.1
 #define THETA_MEAS_COV 0.1
 #define Z_MEAS_COV 0.2
