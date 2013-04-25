@@ -130,6 +130,7 @@
 //Macros
 #define CVPOINT_DIST(X,Y)       ( pow( ( pow( (X.x-Y.x),2.0 ) + pow( (X.y-Y.y),2.0 ) ), 0.5 ) )
 
+using namespace std;
 
 
 struct poseStruct{
@@ -193,6 +194,34 @@ inline static void generate_Reb(double phi, double theta, double psi, CvMat * R_
     R_eb->data.db[8] = cos(theta)*cos(phi);
     
 }
+
+inline static void printMatrix(CvMat * matrix)
+{
+    int cols = matrix->cols;
+    int rows = matrix->rows;
+    cout << endl;
+    if (cols == 1)
+    {
+        cols = rows;
+        rows = 1;
+    }
+    
+    for (int i = 0; i < rows; i++)
+    {
+        printf("%d:\t",i);
+        for (int j = 0; j < cols; j++)
+        {
+            if(matrix->data.db[cols*i+j] >= 0.0)
+                printf(" %.2f ",matrix->data.db[cols*i+j]);
+            else
+                printf("%.2f ",matrix->data.db[cols*i+j]);
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+
 
 
 #endif	/* _COMMON_H */

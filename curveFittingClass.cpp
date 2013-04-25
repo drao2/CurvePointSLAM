@@ -1165,7 +1165,7 @@ void CurveFittingClass::generateMeasurements(CvMat * state_actual, double t_star
     }
 }
 
-void printMatrix(CvMat * matrix)
+/*void printMatrix(CvMat * matrix)
 {
     int cols = matrix->cols;
     int rows = matrix->rows;
@@ -1182,6 +1182,7 @@ void printMatrix(CvMat * matrix)
 
     
 }
+ */
 
 void LinearLeastSquares(CvMat * A, CvMat * b, CvMat * x)
 {

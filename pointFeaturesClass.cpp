@@ -73,12 +73,12 @@ float elapsedTime;
         //Triangulate all points, and fit a plane to get the 2D landmarks and the roll, pitch, height
         //
         
-        
         //Matrices requiredcentroid = cvCreateMat(3,1,CV_64FC1);
         CvMat * W = cvCreateMat(3,1, CV_64FC1);
-        CvMat * U = cvCreateMat(4,3, CV_64FC1);
+        CvMat * U = cvCreateMat(num_tot_meas,3, CV_64FC1);
         CvMat * V = cvCreateMat(3,3, CV_64FC1);
         CvMat * normal = cvCreateMat(3,1,CV_64FC1);
+        CvMat * temp13 = cvCreateMat(1,3,CV_64FC1);
         CvMat * centroid = cvCreateMat(3,1,CV_64FC1);
         CvMat * origin = cvCreateMat(3,1,CV_64FC1);
         CvMat * Rot = cvCreateMat(3,3,CV_64FC1);
@@ -88,25 +88,31 @@ float elapsedTime;
         CvMat * proj_pts = cvCreateMat(3,num_tot_meas,CV_64FC1);
         cvSetZero(M);
         cvSetZero(proj_pts);
+        
+        
         for (int i = 0; i < *num_existing_meas; i++)
         {
-            cvmSet(M,i,0, FX*BASELINE/(stereo_meas_existing[4*i]-stereo_meas_existing[4*i+2]));
-            cvmSet(M,i,1, 0.5*(tri_meas_existing[3*i]/FX*(stereo_meas_existing[4*i]-CX)-0.5*BASELINE)+0.5*(tri_meas_existing[3*i]/FX*(stereo_meas_existing[4*i+2]-CX)+0.5*BASELINE));
-            cvmSet(M,i,2, 0.5*tri_meas_existing[3*i]/FY*(stereo_meas_existing[4*i+1]-CY)+0.5*tri_meas_existing[3*i]/FY*(stereo_meas_existing[4*i+3]-CY));
+            double x = FX*BASELINE/(stereo_meas_existing[4*i]-stereo_meas_existing[4*i+2]);
+            cvmSet(M,i,0, x);
+            cvmSet(M,i,1, 0.5*(x/FX*(stereo_meas_existing[4*i]-CX)-0.5*BASELINE)+0.5*(x/FX*(stereo_meas_existing[4*i+2]-CX)+0.5*BASELINE));
+            cvmSet(M,i,2, 0.5*x/FY*(stereo_meas_existing[4*i+1]-CY)+0.5*x/FY*(stereo_meas_existing[4*i+3]-CY));
         }
         for (int i = *num_existing_meas; i < num_tot_meas; i++)
         {
-            cvmSet(M,i,0, FX*BASELINE/(stereo_meas_new[4*i]-stereo_meas_new[4*i+2]));
-            cvmSet(M,i,1, 0.5*(tri_meas_new[3*i]/FX*(stereo_meas_new[4*i]-CX)-0.5*BASELINE)+0.5*(tri_meas_new[3*i]/FX*(stereo_meas_new[4*i+2]-CX)+0.5*BASELINE));
-            cvmSet(M,i,2, 0.5*tri_meas_new[3*i]/FY*(stereo_meas_new[4*i+1]-CY)+0.5*tri_meas_new[3*i]/FY*(stereo_meas_new[4*i+3]-CY));
+            double x = FX*BASELINE/(stereo_meas_new[4*i]-stereo_meas_new[4*i+2]);
+            cvmSet(M,i,0, x);
+            cvmSet(M,i,1, 0.5*(x/FX*(stereo_meas_new[4*i]-CX)-0.5*BASELINE)+0.5*(x/FX*(stereo_meas_new[4*i+2]-CX)+0.5*BASELINE));
+            cvmSet(M,i,2, 0.5*x/FY*(stereo_meas_new[4*i+1]-CY)+0.5*x/FY*(stereo_meas_new[4*i+3]-CY));
         }
+        printMatrix(M);
         
         //Get the centroid of the 3D points
         //Just sum over columns of M
-        cvReduce(M, centroid, 0, CV_REDUCE_SUM);
-        centroid->data.db[0] /= num_tot_meas;
-        centroid->data.db[1] /= num_tot_meas;
-        centroid->data.db[2] /= num_tot_meas;
+        cvReduce(M, temp13, 0, CV_REDUCE_SUM);
+        centroid->data.db[0] = temp13->data.db[0]/num_tot_meas;
+        centroid->data.db[1] = temp13->data.db[1]/num_tot_meas;
+        centroid->data.db[2] = temp13->data.db[2]/num_tot_meas;
+        printMatrix(centroid);
         
         //Find the normal vector to the plane they lie in
         cvSVD(M, W, U, V, 0);
@@ -123,7 +129,7 @@ float elapsedTime;
         origin->data.db[0] = d*normal->data.db[0];
         origin->data.db[1] = d*normal->data.db[1];
         origin->data.db[2] = d*normal->data.db[2];
-
+        
 
         double orignorm = cvNorm(origin,NULL,CV_L2,NULL);
         
@@ -139,25 +145,17 @@ float elapsedTime;
 
         //Transform points by projecting onto plane
         cvTranspose(M, proj_pts);
+        printMatrix(proj_pts);
                 //Subtract origin from each point first
-        for (int i = 0; i < num_tot_meas; i++)
+        for (int i = 0; i < 3; i++)
         {
-            for (int j = 0; j < 2; j++)
-                proj_pts->data.db[i*num_tot_meas+j] -= origin->data.db[j];
+            for (int j = 0; j < num_tot_meas; j++)
+                proj_pts->data.db[i*num_tot_meas+j] -= origin->data.db[i];
         }
         
                 //Then rotate to new co-ords (should be close to 2D)
         cvMatMul(Rot,proj_pts,proj_pts);
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        printMatrix(proj_pts);
         
         
         
@@ -198,7 +196,7 @@ float elapsedTime;
     }
     cvShowImage("Left",image_color[LEFT]);
     cvShowImage("Right",image_color[RIGHT]);
-    cvWaitKey(10);
+    cvWaitKey(0);
 }
 
 

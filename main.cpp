@@ -383,6 +383,7 @@ int main(void)
             
             cvCopy(image_raw[0], image_color[0], NULL);
             cvCopy(image_raw[1], image_color[1], NULL);
+            use_points = true;
             
             //Get point measurements (only if not first time and !valid_last_measurement
             if(!first_time)
