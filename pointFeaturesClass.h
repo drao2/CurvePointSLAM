@@ -60,7 +60,7 @@ public:
 	PointFeaturesClass();
 	~PointFeaturesClass();
 
-	void getPointMeasurements(IplImage ** last_image, IplImage ** image, IplImage ** image_color, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
+	void getPointMeasurements(IplImage ** last_image, IplImage ** image, IplImage ** image_color, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence, double * planar_pose_meas);
         void getStereoPts(IplImage ** image, double * stereo_pts, int * num_features);
         void determineDataAssoc(IplImage ** image, double * measurements, int num_features, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondence);
         //determinedataAssoc takes ALL measurements, finds associations and uses it to split into 'new' and 'existing'

@@ -35,7 +35,7 @@ PointFeaturesClass::~PointFeaturesClass()
 	//return;
 }
 
-void PointFeaturesClass::getPointMeasurements(IplImage ** last_image, IplImage ** image, IplImage ** image_color, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondences)
+void PointFeaturesClass::getPointMeasurements(IplImage ** last_image, IplImage ** image, IplImage ** image_color, double * meas_new, int * num_new_meas, double * meas_existing, int * num_existing_meas, int * correspondences, double * planar_pose_meas)
 { 
     
 timeval t_start, t_stop;
@@ -55,11 +55,107 @@ float elapsedTime;
         num_pts_curr = 0;
         gettimeofday(&start, NULL);
         
+        double stereo_meas_existing[200];
+        double stereo_meas_new[200];
+        
         //Track existing points and Add new ones to make up a constant number o total tracked points
-        trackExistingLandmarks(last_image, image, meas_existing, num_existing_meas, correspondences);
-        findNewLandmarks(image, meas_new, num_new_meas);
+        trackExistingLandmarks(last_image, image, &stereo_meas_existing[0], num_existing_meas, correspondences);
+        findNewLandmarks(image, &stereo_meas_new[0], num_new_meas);
         //getStereoPts(image, stereo_pts, &num_total_meas);
         //determineDataAssoc(image, stereo_pts, num_total_meas, meas_new, num_new_meas, meas_existing, num_existing_meas, correspondences);
+        
+        //Triangulated measurements in 3D before projecting to plane
+        double tri_meas_existing[150];
+        double tri_meas_new[150];
+        int num_tot_meas = *num_existing_meas + *num_new_meas;
+        
+        //
+        //Triangulate all points, and fit a plane to get the 2D landmarks and the roll, pitch, height
+        //
+        
+        
+        //Matrices requiredcentroid = cvCreateMat(3,1,CV_64FC1);
+        CvMat * W = cvCreateMat(3,1, CV_64FC1);
+        CvMat * U = cvCreateMat(4,3, CV_64FC1);
+        CvMat * V = cvCreateMat(3,3, CV_64FC1);
+        CvMat * normal = cvCreateMat(3,1,CV_64FC1);
+        CvMat * centroid = cvCreateMat(3,1,CV_64FC1);
+        CvMat * origin = cvCreateMat(3,1,CV_64FC1);
+        CvMat * Rot = cvCreateMat(3,3,CV_64FC1);
+        
+        //First, put triangulated measurements into a matrix (to pass into SVD)
+        CvMat * M = cvCreateMat(num_tot_meas,3,CV_64FC1);
+        CvMat * proj_pts = cvCreateMat(3,num_tot_meas,CV_64FC1);
+        cvSetZero(M);
+        cvSetZero(proj_pts);
+        for (int i = 0; i < *num_existing_meas; i++)
+        {
+            cvmSet(M,i,0, FX*BASELINE/(stereo_meas_existing[4*i]-stereo_meas_existing[4*i+2]));
+            cvmSet(M,i,1, 0.5*(tri_meas_existing[3*i]/FX*(stereo_meas_existing[4*i]-CX)-0.5*BASELINE)+0.5*(tri_meas_existing[3*i]/FX*(stereo_meas_existing[4*i+2]-CX)+0.5*BASELINE));
+            cvmSet(M,i,2, 0.5*tri_meas_existing[3*i]/FY*(stereo_meas_existing[4*i+1]-CY)+0.5*tri_meas_existing[3*i]/FY*(stereo_meas_existing[4*i+3]-CY));
+        }
+        for (int i = *num_existing_meas; i < num_tot_meas; i++)
+        {
+            cvmSet(M,i,0, FX*BASELINE/(stereo_meas_new[4*i]-stereo_meas_new[4*i+2]));
+            cvmSet(M,i,1, 0.5*(tri_meas_new[3*i]/FX*(stereo_meas_new[4*i]-CX)-0.5*BASELINE)+0.5*(tri_meas_new[3*i]/FX*(stereo_meas_new[4*i+2]-CX)+0.5*BASELINE));
+            cvmSet(M,i,2, 0.5*tri_meas_new[3*i]/FY*(stereo_meas_new[4*i+1]-CY)+0.5*tri_meas_new[3*i]/FY*(stereo_meas_new[4*i+3]-CY));
+        }
+        
+        //Get the centroid of the 3D points
+        //Just sum over columns of M
+        cvReduce(M, centroid, 0, CV_REDUCE_SUM);
+        centroid->data.db[0] /= num_tot_meas;
+        centroid->data.db[1] /= num_tot_meas;
+        centroid->data.db[2] /= num_tot_meas;
+        
+        //Find the normal vector to the plane they lie in
+        cvSVD(M, W, U, V, 0);
+
+        normal->data.db[0] = V->data.db[2];
+        normal->data.db[1] = V->data.db[5];
+        normal->data.db[2] = V->data.db[8];
+
+        double d = cvDotProduct(normal,centroid);
+        double theta = -asin(normal->data.db[0]);
+        double phi = asin(normal->data.db[1]);
+
+        //Find the point of the 'ground' co-ord axis
+        origin->data.db[0] = d*normal->data.db[0];
+        origin->data.db[1] = d*normal->data.db[1];
+        origin->data.db[2] = d*normal->data.db[2];
+
+
+        double orignorm = cvNorm(origin,NULL,CV_L2,NULL);
+        
+        Rot->data.db[0] = cos(theta);
+        Rot->data.db[3] = 0.0;
+        Rot->data.db[6] = -sin(theta);
+        Rot->data.db[1] = sin(theta)*sin(phi);
+        Rot->data.db[4] = cos(phi);
+        Rot->data.db[7] = cos(theta)*sin(phi);
+        Rot->data.db[2] = sin(theta)*cos(phi);
+        Rot->data.db[5] = -sin(phi);
+        Rot->data.db[8] = cos(theta)*cos(phi);
+
+        //Transform points by projecting onto plane
+        cvTranspose(M, proj_pts);
+                //Subtract origin from each point first
+        for (int i = 0; i < num_tot_meas; i++)
+        {
+            for (int j = 0; j < 2; j++)
+                proj_pts->data.db[i*num_tot_meas+j] -= origin->data.db[j];
+        }
+        
+                //Then rotate to new co-ords (should be close to 2D)
+        cvMatMul(Rot,proj_pts,proj_pts);
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         

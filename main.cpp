@@ -378,6 +378,7 @@ int main(void)
             int n_pts_new = 0;
             double point_meas_existing[200];
             double point_meas_new[200];
+            double planar_pose_meas[3];
             int correspondences[50];
             
             cvCopy(image_raw[0], image_color[0], NULL);
@@ -387,7 +388,7 @@ int main(void)
             if(!first_time)
             {
                 if (use_points) //Only get/track point measurements if we need to
-                        pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0]);
+                        pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0], &planar_pose_meas[0]);
 
                 EKF->PredictKF();
             }
