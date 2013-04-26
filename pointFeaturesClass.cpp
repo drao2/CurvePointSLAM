@@ -2,9 +2,6 @@
 #include "common.h"
 
 
-//TODO: FIX UP CALIBRATION STUFF - the body2stereo and reverse don't reproduce the same thing
-//TODO: FIX UP RANSAC COST STUFF - could only use 2 points, get a horribly wrong estimate but a good cost
-
 using namespace std;
 
 PointFeaturesClass::PointFeaturesClass()
@@ -176,23 +173,23 @@ float elapsedTime;
     char tstring[5];
     for (int i = 0; i < *num_existing_meas; i++)
     {
-        cvCircle(image_color[LEFT], cvPoint(meas_existing[4*i],meas_existing[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
+        cvCircle(image_color[LEFT], cvPoint(stereo_meas_existing[4*i],stereo_meas_existing[4*i+1]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         sprintf(tstring,"%d",correspondences[i]);
-        cvPutText(image_color[LEFT],tstring,cvPoint(meas_existing[4*i],meas_existing[4*i+1]-5),&font, CV_RGB(255,255,255));
+        cvPutText(image_color[LEFT],tstring,cvPoint(stereo_meas_existing[4*i],stereo_meas_existing[4*i+1]-5),&font, CV_RGB(255,255,255));
         
-        cvCircle(image_color[RIGHT], cvPoint(meas_existing[4*i+2],meas_existing[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
+        cvCircle(image_color[RIGHT], cvPoint(stereo_meas_existing[4*i+2],stereo_meas_existing[4*i+3]), 5, CV_RGB(255,255,255), 1, CV_AA, 0 );
         sprintf(tstring,"%d",correspondences[i]);
-        cvPutText(image_color[RIGHT],tstring,cvPoint(meas_existing[4*i+2],meas_existing[4*i+3]-5),&font, CV_RGB(255,255,255));
+        cvPutText(image_color[RIGHT],tstring,cvPoint(stereo_meas_existing[4*i+2],stereo_meas_existing[4*i+3]-5),&font, CV_RGB(255,255,255));
     }
     for (int i = 0; i < *num_new_meas; i++)
     {
-        cvCircle(image_color[LEFT], cvPoint(meas_new[4*i],meas_new[4*i+1]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
+        cvCircle(image_color[LEFT], cvPoint(stereo_meas_new[4*i],stereo_meas_new[4*i+1]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
         sprintf(tstring,"%d",-1);
-        cvPutText(image_color[LEFT],tstring,cvPoint(meas_new[4*i],meas_new[4*i+1]-5),&font, CV_RGB(0,0,0));
+        cvPutText(image_color[LEFT],tstring,cvPoint(stereo_meas_new[4*i],stereo_meas_new[4*i+1]-5),&font, CV_RGB(0,0,0));
         
-        cvCircle(image_color[RIGHT], cvPoint(meas_new[4*i+2],meas_new[4*i+3]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
+        cvCircle(image_color[RIGHT], cvPoint(stereo_meas_new[4*i+2],stereo_meas_new[4*i+3]), 5, CV_RGB(0,0,0), 1, CV_AA, 0 );
         sprintf(tstring,"%d",-1);
-        cvPutText(image_color[RIGHT],tstring,cvPoint(meas_new[4*i+2],meas_new[4*i+3]-5),&font, CV_RGB(0,0,0));
+        cvPutText(image_color[RIGHT],tstring,cvPoint(stereo_meas_new[4*i+2],stereo_meas_new[4*i+3]-5),&font, CV_RGB(0,0,0));
     }
     cvShowImage("Left",image_color[LEFT]);
     cvShowImage("Right",image_color[RIGHT]);
