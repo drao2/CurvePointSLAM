@@ -54,6 +54,8 @@
 #define LM_PROXIMITY_THRESH     20.0    //For new landmarks, we reject them if they are this close to an existing one
 #define NUM_CURRENT_LANDMARKS   10
 
+#define MAX_PT_DIST     5.0     //The furthest distance away that the points can be
+
 class PointFeaturesClass
 {
 public:

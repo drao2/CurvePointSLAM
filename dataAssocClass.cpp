@@ -140,9 +140,9 @@ void DataAssocClass::singleFrameTrack(IplImage ** last_image, IplImage ** image,
         cvCalcOpticalFlowPyrLK(last_image[0], image[0], pyramid1, pyramid2, &(temp_pt6),&(temp_pt6a), 1, optical_flow_window, 1,optical_flow_found_feature, optical_flow_feature_error,optical_flow_termination_criteria, 0 );
 
     
-    cvShowImage("Left",current_image);
-    cvShowImage("Last Left",prev_image);
-    cvWaitKey(0);
+    //cvShowImage("Left",current_image);
+    //cvShowImage("Last Left",prev_image);
+    //cvWaitKey(0);
     }
     cvResetImageROI(last_image[0]);
     cvResetImageROI(image[0]);

@@ -15,7 +15,7 @@ PointFeaturesClass::PointFeaturesClass()
         //srand(0);
 	//return;
         
-        optical_flow_window = cvSize(21,21);
+        optical_flow_window = cvSize(31,31);
         optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .0001 );
         
         num_pts_last = 0;
@@ -61,16 +61,15 @@ float elapsedTime;
         //getStereoPts(image, stereo_pts, &num_total_meas);
         //determineDataAssoc(image, stereo_pts, num_total_meas, meas_new, num_new_meas, meas_existing, num_existing_meas, correspondences);
         
-        //Triangulated measurements in 3D before projecting to plane
-        double tri_meas_existing[150];
-        double tri_meas_new[150];
-        int num_tot_meas = *num_existing_meas + *num_new_meas;
+
         
         //
         //Triangulate all points, and fit a plane to get the 2D landmarks and the roll, pitch, height
         //
+        int num_tot_meas = *num_existing_meas + *num_new_meas;
         
-        //Matrices requiredcentroid = cvCreateMat(3,1,CV_64FC1);
+        //Matrices required
+        /*centroid = cvCreateMat(3,1,CV_64FC1);
         CvMat * W = cvCreateMat(3,1, CV_64FC1);
         CvMat * U = cvCreateMat(num_tot_meas,3, CV_64FC1);
         CvMat * V = cvCreateMat(3,3, CV_64FC1);
@@ -153,6 +152,24 @@ float elapsedTime;
                 //Then rotate to new co-ords (should be close to 2D)
         cvMatMul(Rot,proj_pts,proj_pts);
         printMatrix(proj_pts);
+        
+        */
+        
+        for (int i = 0; i < *num_existing_meas; i++)
+        {
+            double x = FX*BASELINE/(stereo_meas_existing[4*i]-stereo_meas_existing[4*i+2]);
+            meas_existing[3*i] = x;
+            meas_existing[3*i+1] = 0.5*(x/FX*(stereo_meas_existing[4*i]-CX)-0.5*BASELINE)+0.5*(x/FX*(stereo_meas_existing[4*i+2]-CX)+0.5*BASELINE);
+            meas_existing[3*i+2] = 0.5*x/FY*(stereo_meas_existing[4*i+1]-CY)+0.5*x/FY*(stereo_meas_existing[4*i+3]-CY);
+        }
+        for (int i = 0; i < *num_new_meas; i++)
+        {
+            double x = FX*BASELINE/(stereo_meas_new[4*i]-stereo_meas_new[4*i+2]);
+            meas_new[3*i] = x;
+            meas_new[3*i+1] = 0.5*(x/FX*(stereo_meas_new[4*i]-CX)-0.5*BASELINE)+0.5*(x/FX*(stereo_meas_new[4*i+2]-CX)+0.5*BASELINE);
+            meas_new[3*i+2] = 0.5*x/FY*(stereo_meas_new[4*i+1]-CY)+0.5*x/FY*(stereo_meas_new[4*i+3]-CY);
+        }
+        
         
         
         
@@ -270,11 +287,11 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
         //Find left image features
         CvPoint2D32f image_features_left[MAX_VODOM_FEATURES];
         int num_features_left = MAX_VODOM_FEATURES;
-        cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.0001, 5, NULL, 7, 0, 0.04);
+        cvGoodFeaturesToTrack(image[LEFT], eig_image, temp_image, image_features_left, &num_features_left, 0.0001, 5, NULL, 3, 0, 0.04);
         //Find right image features
         CvPoint2D32f image_features_right[MAX_VODOM_FEATURES];
         int num_features_right = MAX_VODOM_FEATURES;
-        cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.0001, 5, NULL, 7, 0, 0.04);
+        cvGoodFeaturesToTrack(image[RIGHT], eig_image, temp_image, image_features_right, &num_features_right, 0.0001, 5, NULL, 3, 0, 0.04);
 
         //Remove ones that are too close to the edges
         for (int i = 0; i < num_features_left; i++)
@@ -397,7 +414,8 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
                 }
             }
 
-            //Only keep ones that share mutual matches and whose disparity is >0
+            //Only keep ones that share mutual matches and whose disparity
+            //means the distance from camera is close enough
 
             CvPoint2D32f matched_features_left[MAX_VODOM_FEATURES];
             CvPoint2D32f matched_features_right[MAX_VODOM_FEATURES];
@@ -405,7 +423,7 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
 
             for (int i = 0; i < num_features_left; i++)
             {
-                if (left_bestmatch[i] != -1 && right_bestmatch[left_bestmatch[i]] == i && (image_features_left[i].x - image_features_right[left_bestmatch[i]].x) > -2*POINT_OFFSET)
+                if (left_bestmatch[i] != -1 && right_bestmatch[left_bestmatch[i]] == i && (image_features_left[i].x - image_features_right[left_bestmatch[i]].x) > FX*BASELINE/MAX_PT_DIST)
                 {
                     matched_features_left[k] =  image_features_left[i];
                     matched_features_right[k] =  image_features_right[left_bestmatch[i]];

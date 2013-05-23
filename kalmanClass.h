@@ -15,7 +15,7 @@
 #include "common.h"
 
 #define MEAS_COV 10.0 //Innovation for curve cp meas (in m)
-#define PT_MEAS_COV 1.0 //Innovation for pt meas (in pixels)
+#define PT_MEAS_COV 5.0 //Innovation for pt meas (in m)
 
 #define VX_COV 0.2
 #define VY_COV 0.2
@@ -72,6 +72,7 @@ public:
         
         void InitCurve(CvMat * curve, CvMat * z, CvMat * x, CvMat * A);
         void InitPoint(CvMat * pt,double * measurement,CvMat * x);
+        void InitPointDirect(CvMat * pt,double * measurement,CvMat * x);
         void predictPointMeas(CvMat * meas, CvMat * x, int point_num);
 	CvMat * A1;
 	CvMat * A2;

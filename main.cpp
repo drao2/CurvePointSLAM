@@ -376,14 +376,14 @@ int main(void)
                 cvWaitKey(10);
             int n_pts_existing = 0;
             int n_pts_new = 0;
-            double point_meas_existing[200];
-            double point_meas_new[200];
+            double point_meas_existing[150];
+            double point_meas_new[150];
             double planar_pose_meas[3];
             int correspondences[50];
             
             cvCopy(image_raw[0], image_color[0], NULL);
             cvCopy(image_raw[1], image_color[1], NULL);
-            use_points = true;
+            //use_points = true;
             
             //Get point measurements (only if not first time and !valid_last_measurement
             if(!first_time)
