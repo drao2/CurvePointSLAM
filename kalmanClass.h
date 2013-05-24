@@ -14,22 +14,22 @@
 
 #include "common.h"
 
-#define MEAS_COV 10.0 //Innovation for curve cp meas (in m)
+#define MEAS_COV 1.0 //Innovation for curve cp meas (in m)
 #define PT_MEAS_COV 5.0 //Innovation for pt meas (in m)
 
 #define VX_COV 0.2
-#define VY_COV 0.2
+#define VY_COV 0.01
 #define VZ_COV 0.5
 #define WX_COV 0.1
 #define WY_COV 0.1
-#define WZ_COV 0.1
+#define WZ_COV 0.001
 #define PHI_MEAS_COV 0.1
 #define THETA_MEAS_COV 0.1
 #define Z_MEAS_COV 0.2
 
 #define JAC_EPS 1e-4    //Epsilon for numerical Jacobian
 
-#define DT  0.1
+#define DT  0.2
 
 #define VREAL 0.0
 

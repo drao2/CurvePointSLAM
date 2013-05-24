@@ -43,7 +43,7 @@
 //#define FRAMES_TO_SKIP  3101
 #define FRAMES_TO_SKIP  150
 #define LENGTH_EACH_CURVE  75
-#define NUM_FRAMES_DA_RESET     10       //Number of frames without a valid curve measurement after which 
+#define NUM_FRAMES_DA_RESET     2       //Number of frames without a valid curve measurement after which 
 //we reset the data association and start with new curves
 
 
@@ -658,7 +658,7 @@ int main(void)
 //PERFORM CURVE FITTING AND STORE THE PARAMS IN 'params'
                 curveFitter->fit_curve(&(params[0]), featuresLeftImage, featuresRightImage, display_GUI);
                 //valid_measurement = EKF->CheckValidMeasurement(params[16],params[17],params[18],frames_since_good_measurement);
-                
+                valid_measurement = true;
                 if (curveFitter->fitting_error > ERROR_THRESHOLD)
                     valid_measurement = false;
                 else
@@ -1256,7 +1256,7 @@ int main(void)
                         //cout << "TOTAL: " << elapsedTime << endl;
             gettimeofday(&start, NULL);
             
-            cvWaitKey(10);
+            cvWaitKey(0);
         }
 
 	return 0;

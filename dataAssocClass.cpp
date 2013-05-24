@@ -73,7 +73,7 @@ DataAssocClass::DataAssocClass()
 
     frame_size = cvSize(PIC_WIDTH,PIC_HEIGHT);
 
-    optical_flow_window = cvSize(PIC_WIDTH/5-1,PIC_WIDTH/5-1);
+    optical_flow_window = cvSize(PIC_WIDTH/10-1,PIC_WIDTH/10-1);
     optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .0001 );
 
 
@@ -137,6 +137,7 @@ void DataAssocClass::singleFrameTrack(IplImage ** last_image, IplImage ** image,
         temp_pt.y = map_endpt_tracked.y;
         
         cvCalcOpticalFlowPyrLK(last_image[0], image[0], pyramid1, pyramid2, &(temp_pt),&(map_endpt_tracked), 1, optical_flow_window, 1,optical_flow_found_feature, optical_flow_feature_error,optical_flow_termination_criteria, 0 );
+        cout << "DA tracking error: " << optical_flow_feature_error[0] << endl;
         cvCalcOpticalFlowPyrLK(last_image[0], image[0], pyramid1, pyramid2, &(temp_pt6),&(temp_pt6a), 1, optical_flow_window, 1,optical_flow_found_feature, optical_flow_feature_error,optical_flow_termination_criteria, 0 );
 
     
@@ -395,7 +396,7 @@ else
     
     cvCircle(image_color[0], cvPoint(old_map_endpt[0],old_map_endpt[1]), 5, CV_RGB(0,0,255), 1, CV_AA, 0 );
     
-    cout << "Old: ti = " <<  t_split[0] << "\ttz = " <<  t_split[1] << "\tj = " <<  t_split[2] << endl;
+    //cout << "Old: ti = " <<  t_split[0] << "\ttz = " <<  t_split[1] << "\tj = " <<  t_split[2] << endl;
 
 
 	gettimeofday(&stop, NULL);
