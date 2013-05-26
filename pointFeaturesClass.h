@@ -28,6 +28,7 @@
 #define EPI_THRESH      10
 #define DISP_THRESH_HI      100
 #define DISP_THRESH_LO      5
+#define DISP_THRESH_CHANGE      25
 #define SSD_THRESH      (0.5*WINDOW_SIZE*WINDOW_SIZE)//700.0
 #define DA_SSD_THRESH   SSD_THRESH/2.0
 #define LM_OPTS_SZ    	 5 /* max(4, 5) */
@@ -88,6 +89,8 @@ private:
                 int frames_since_obs;
         };
         std::vector<struct landmarkStruct> existing_landmarks;
+        
+        int stereo_disparity[NUM_CURRENT_LANDMARKS];
         
         CvPoint2D32f pts_curr[2][NUM_CURRENT_LANDMARKS];
         int matches_curr[NUM_CURRENT_LANDMARKS];

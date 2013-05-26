@@ -55,7 +55,7 @@ float elapsedTime;
         double stereo_meas_existing[200];
         double stereo_meas_new[200];
         
-        //Track existing points and Add new ones to make up a constant number o total tracked points
+        //Track existing points and Add new ones to make up a constant number of total tracked points
         trackExistingLandmarks(last_image, image, &stereo_meas_existing[0], num_existing_meas, correspondences);
         findNewLandmarks(image, &stereo_meas_new[0], num_new_meas);
         //getStereoPts(image, stereo_pts, &num_total_meas);
@@ -210,7 +210,7 @@ float elapsedTime;
     }
     cvShowImage("Left",image_color[LEFT]);
     cvShowImage("Right",image_color[RIGHT]);
-    cvWaitKey(0);
+    //cvWaitKey(0);
 }
 
 
@@ -237,8 +237,8 @@ void PointFeaturesClass::trackExistingLandmarks(IplImage ** last_image, IplImage
                 //If close enough in terms of epipole
                 if(fabs(temp_pts_curr[LEFT][i].y-temp_pts_curr[RIGHT][i].y) < EPI_THRESH)
                 {
-                    //If disparity OK
-                    if((temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) < DISP_THRESH_HI && (temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) > DISP_THRESH_LO)
+                    //If disparity OK (and not too different to last time)
+                    if((temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) < DISP_THRESH_HI && (temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x) > DISP_THRESH_LO && ( fabs(temp_pts_curr[LEFT][i].x-temp_pts_curr[RIGHT][i].x - stereo_disparity[i]) < DISP_THRESH_CHANGE ) )
                     {
                         //If not too close to the edge
                         if(temp_pts_curr[LEFT][i].x > PATCH_HALF+BORDER_LEFT && temp_pts_curr[LEFT][i].x < BORDER_RIGHT-PATCH_HALF-0 && temp_pts_curr[LEFT][i].y > PATCH_HALF+BORDER_TOP && temp_pts_curr[LEFT][i].y < BORDER_BOTTOM-PATCH_HALF)
@@ -256,6 +256,9 @@ void PointFeaturesClass::trackExistingLandmarks(IplImage ** last_image, IplImage
                                 {
                                     pts_curr[LEFT][num_pts_curr] = temp_pts_curr[LEFT][i];
                                     pts_curr[RIGHT][num_pts_curr] = temp_pts_curr[RIGHT][i];
+                                    
+                                    //Maintain stereo disparity (so we can check for next time)
+                                    stereo_disparity[num_pts_curr] = temp_pts_curr[LEFT][i].x - temp_pts_curr[RIGHT][i].x;
 
                                     meas_existing[4*num_pts_curr] = temp_pts_curr[LEFT][i].x;
                                     meas_existing[4*num_pts_curr+1] = temp_pts_curr[LEFT][i].y;
@@ -441,6 +444,9 @@ void PointFeaturesClass::findNewLandmarks(IplImage ** image, double * meas_new, 
             {
                 pts_curr[LEFT][num_pts_curr] = matched_features_left[i];
                 pts_curr[RIGHT][num_pts_curr] = matched_features_right[i];
+                
+                stereo_disparity[num_pts_curr] = pts_curr[LEFT][i].x - pts_curr[RIGHT][i].x;
+
 
                 meas_new[4*n_new_pts] = matched_features_left[i].x;
                 meas_new[4*n_new_pts+1] = matched_features_left[i].y;
