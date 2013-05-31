@@ -97,12 +97,12 @@ cvSetImageROI(edge_search_region,cvRect(roi->x,EDGE_Y_CUTOFF,roi->width,roi->hei
 	double maxVal;
 
 #ifdef CRYSTAL_LAKE
-	//cvSub(img_v,img_s,img_s);
+	cvSub(img_v,img_s,img_s);
 	cvMinMaxLoc(img_s, &minVal,&maxVal,NULL);
         
 	cvConvertScale(img_s, img_s, 255.0/(maxVal-minVal), -minVal/(maxVal-minVal) );
-        cvSmooth(img_s,img_s,CV_GAUSSIAN,15,15,0);
-        cvThreshold(img_s,img_s,80,255,CV_THRESH_BINARY_INV);
+        cvSmooth(img_s,img_s,CV_GAUSSIAN,25,25,0);
+        cvThreshold(img_s,img_s,60,255,CV_THRESH_BINARY_INV);
         
 #endif   
         
@@ -201,7 +201,8 @@ cvResetImageROI(edge_search_region);
         cvShowImage(string,img_v);
         cvWaitKey(10);
 #endif
-
+//sprintf(string,"ImageS %d",cam);
+        //cvShowImage(string,img_s);
 
         cvCopy(edge,edge_search_region,NULL);
         if (cam == 0)

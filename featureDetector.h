@@ -30,11 +30,7 @@
 
 #define MINZERO(X)		(((X) > 0.0) ? (X) : (0.0) )
 
-#define EDGE_Y_CUTOFF           80
-
-#define MEADOWBROOK
-//#define CRYSTAL_LAKE
-//#define QUAD
+#define EDGE_Y_CUTOFF           40
 
 #define Y_CHOP ((3*PIC_HEIGHT)/5)
 #define X_CHOP ((2*PIC_WIDTH)/5)

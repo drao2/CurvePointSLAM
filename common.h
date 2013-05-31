@@ -18,7 +18,7 @@
 
 //#define NO_SLAM
 
-#define QUAD
+#define CRYSTAL_LAKE
 
 #define MEAS_STDEV 0.1
 #define ONLY_ADD_STATE 0x01
@@ -124,7 +124,7 @@
 #define USE_VIDEO
 //#define SAVE_VIDEO
 
-#define VIDEO_FILENAME "cam30%d.avi"
+#define VIDEO_FILENAME "cam24%d.avi"
 
 
 //Macros

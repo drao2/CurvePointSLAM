@@ -22,7 +22,7 @@
 #define VZ_COV 0.5
 #define WX_COV 0.1
 #define WY_COV 0.1
-#define WZ_COV 0.001
+#define WZ_COV 0.1
 #define PHI_MEAS_COV 0.1
 #define THETA_MEAS_COV 0.1
 #define Z_MEAS_COV 0.2
@@ -31,7 +31,7 @@
 
 #define DT  0.2
 
-#define VREAL 0.0
+#define VREAL 1.0
 
 #define ROBOT_STATE_SIZE  12
 

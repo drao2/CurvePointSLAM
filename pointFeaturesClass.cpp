@@ -208,8 +208,8 @@ float elapsedTime;
         sprintf(tstring,"%d",-1);
         cvPutText(image_color[RIGHT],tstring,cvPoint(stereo_meas_new[4*i+2],stereo_meas_new[4*i+3]-5),&font, CV_RGB(0,0,0));
     }
-    cvShowImage("Left",image_color[LEFT]);
-    cvShowImage("Right",image_color[RIGHT]);
+    //cvShowImage("Left",image_color[LEFT]);
+    //cvShowImage("Right",image_color[RIGHT]);
     //cvWaitKey(0);
 }
 

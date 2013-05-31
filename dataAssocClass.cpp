@@ -73,7 +73,7 @@ DataAssocClass::DataAssocClass()
 
     frame_size = cvSize(PIC_WIDTH,PIC_HEIGHT);
 
-    optical_flow_window = cvSize(PIC_WIDTH/10-1,PIC_WIDTH/10-1);
+    optical_flow_window = cvSize(PIC_WIDTH/5-1,PIC_WIDTH/5-1);
     optical_flow_termination_criteria = cvTermCriteria( CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1000, .0001 );
 
 

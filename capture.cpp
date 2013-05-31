@@ -530,6 +530,8 @@ void CaptureDevice::getVideoFrame()
         //IplImage * tempImage2 = cvCreateImage(cvSize(640,480),IPL_DEPTH_8U,3);
         //cvCvtColor(tempImage,tempImage2,CV_RGB2GRAY);
         cvResize(tempImage, frame, CV_INTER_LINEAR);
+        //cout << tempImage->height << tempImage->width << endl;
+        //cvCopy(tempImage, frame, NULL);
         //cvCvtColor(tempImage,frame,CV_RGB2GRAY);
         //cvReleaseImage(&tempImage);
 

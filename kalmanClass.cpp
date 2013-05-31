@@ -848,7 +848,6 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             }
 
             //dzPsi
-            //cvSub(xe,Tbe,xe);
             for (int j = 0; j < 3; j++)
             {
                 cvMatMul(R_be_derivs[j],xe,temp31);
@@ -887,7 +886,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvmSet(Hnum,n*8+2,4,1.0);
         
         //cvSub(H,Hnum,Hnum);
-        //printMatrix(Hnum);
+        //cout << cvNorm(Hnum) << endl;
         
         //Update state
         for (int i = 0; i < n; i++)
@@ -928,6 +927,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             cout << endl;
         }*/
         
+        //printMatrix(tempn1);
+        //printMatrix(z);
         cvSub(z,tempn1,tempn1);
         cvMatMul(K,tempn1,delx);
         cvAdd(x,delx,x);

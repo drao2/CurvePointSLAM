@@ -25,7 +25,7 @@
         #define LEFT_IMAGE_LAG 0
     #else
         #ifdef CRYSTAL_LAKE
-            #define LEFT_IMAGE_LAG 1
+            #define LEFT_IMAGE_LAG 2
         #else
                 #define LEFT_IMAGE_LAG  2
         #endif
@@ -35,19 +35,19 @@
 //#define LEFT_RIGHT_OFFSET   2
 //#define LEFT_RIGHT_OFFSET   -2
 
-#define ERROR_THRESHOLD 50000.0
+#define ERROR_THRESHOLD 200000.0
 //#define ERROR_THRESHOLD 23000.0
 
 #define FRAME_INTERVAL  1
 #define TOP_Y_CUTOFF    50
 //#define FRAMES_TO_SKIP  3101
-#define FRAMES_TO_SKIP  150
+#define FRAMES_TO_SKIP  300
 #define LENGTH_EACH_CURVE  75
 #define NUM_FRAMES_DA_RESET     2       //Number of frames without a valid curve measurement after which 
 //we reset the data association and start with new curves
 
 
-#define CURVE_MIN_OBS   0.5     //Min amount of a curve that needs to be observed before it is introduced
+#define CURVE_MIN_OBS   0.0     //Min amount of a curve that needs to be observed before it is introduced
 
 
 
@@ -335,7 +335,8 @@ int main(void)
             else if (frames_since_good_measurement >= NUM_FRAMES_DA_RESET)
             {
                 reset_data_assoc = true;
-                use_points = true;
+                //use_points = true;
+                use_points = false;
             }
             else
                 reset_data_assoc = false;
@@ -358,6 +359,7 @@ int main(void)
 			image_raw[i] = camera[i].get_frame();
                         cvRemap(image_raw[i], image_color[i], mx[i], my[i]);
                         cvCopy(image_color[i],image_raw[i],NULL);
+                        //cvCopy(image_raw[i],image_color[i],NULL);
                         cvCvtColor(image_raw[i],image[i],CV_RGB2GRAY);
                 }
                 
@@ -369,11 +371,11 @@ int main(void)
                 }
                 counter++;
             }
-                cvShowImage("Left",image_color[LEFT]);
-                cvShowImage("Right",image_color[RIGHT]);
-                cvShowImage("Last Left",last_image_color[LEFT]);
-                cvShowImage("Last Right",last_image_color[RIGHT]);
-                cvWaitKey(10);
+                //cvShowImage("Left",image_color[LEFT]);
+                //cvShowImage("Right",image_color[RIGHT]);
+                //cvShowImage("Last Left",last_image_color[LEFT]);
+                //cvShowImage("Last Right",last_image_color[RIGHT]);
+                //cvWaitKey(10);
             int n_pts_existing = 0;
             int n_pts_new = 0;
             double point_meas_existing[150];
@@ -626,7 +628,12 @@ int main(void)
             CvMat * state_current = EKF->getState();
             
             //Only proceed if the above was successful and we have edges to work with
-            if(edges_detected)
+            if (!edges_detected)
+            {
+                cout << "Edges not detected!\n";
+                valid_measurement = false;
+            }
+            else
             {
                 //Copy features into CvMat form
                 for (int n = 0; n < 2; n++)
@@ -660,7 +667,10 @@ int main(void)
                 //valid_measurement = EKF->CheckValidMeasurement(params[16],params[17],params[18],frames_since_good_measurement);
                 valid_measurement = true;
                 if (curveFitter->fitting_error > ERROR_THRESHOLD)
+                {
                     valid_measurement = false;
+                    cout << "Curve fitting threshold exceeded!\n";
+                }       
                 else
                 {
                     for (int i = 0; i < 19; i++)
@@ -668,6 +678,7 @@ int main(void)
                         if (isnan(params[i]))
                         {
                             valid_measurement = false;
+                            cout << "Curve fitting produced NaN params!\n";
                             break;
                         }
                     }
@@ -678,11 +689,15 @@ int main(void)
                     if (fabs(params[i]) > 50.0)
                     {
                         valid_measurement = false;
+                        cout << "Curve fitting params out of range!\n";
                         break;
                     }
                 }
                 if (params[18] > 0.0)
+                {
                     valid_measurement = false;
+                    cout << "Negative height from curve fitting!\n";
+                }
 
                 if(first_time)
                     valid_measurement = true;
@@ -1202,8 +1217,6 @@ int main(void)
 
 
             }
-            else
-                valid_measurement = false;
             
 //Add any new point measurements we've made
             EKF->AddNewPoints(&point_meas_new[0], n_pts_new);
