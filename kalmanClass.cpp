@@ -927,8 +927,8 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             cout << endl;
         }*/
         
-        //printMatrix(tempn1);
-        //printMatrix(z);
+        printMatrix(tempn1);
+        printMatrix(z);
         cvSub(z,tempn1,tempn1);
         cvMatMul(K,tempn1,delx);
         cvAdd(x,delx,x);

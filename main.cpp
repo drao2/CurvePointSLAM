@@ -35,7 +35,7 @@
 //#define LEFT_RIGHT_OFFSET   2
 //#define LEFT_RIGHT_OFFSET   -2
 
-#define ERROR_THRESHOLD 200000.0
+#define ERROR_THRESHOLD 50000.0
 //#define ERROR_THRESHOLD 23000.0
 
 #define FRAME_INTERVAL  1
@@ -47,9 +47,7 @@
 //we reset the data association and start with new curves
 
 
-#define CURVE_MIN_OBS   0.0     //Min amount of a curve that needs to be observed before it is introduced
-
-
+#define CURVE_MIN_OBS   0.25     //Min amount of a curve that needs to be observed before it is introduced
 
 using namespace std;
 
@@ -1269,7 +1267,7 @@ int main(void)
                         //cout << "TOTAL: " << elapsedTime << endl;
             gettimeofday(&start, NULL);
             
-            cvWaitKey(10);
+            cvWaitKey(0);
         }
 
 	return 0;
