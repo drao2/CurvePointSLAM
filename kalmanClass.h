@@ -74,6 +74,8 @@ public:
         void InitPoint(CvMat * pt,double * measurement,CvMat * x);
         void InitPointDirect(CvMat * pt,double * measurement,CvMat * x);
         void predictPointMeas(CvMat * meas, CvMat * x, int point_num);
+        
+        
 	CvMat * A1;
 	CvMat * A2;
 	CvMat * A1l;
@@ -104,25 +106,11 @@ public:
 	CvMat * delP2;
 	CvMat * z2;
 	CvMat * delx2;
-        CvMat * temp19;
-        CvMat * temp16;
-        CvMat * temp161;
-        CvMat * temp1916;
-        CvMat * temp11;
-        CvMat * temp118;
-        CvMat * temp8;
-        CvMat * temp81;
-        CvMat * temp4;
-        CvMat * temp41;
         CvMat * Reb;
         CvMat * Rebt;
         CvMat * Reb_phi;
         CvMat * Reb_theta;
         CvMat * Reb_psi;
-        CvMat * E;
-        CvMat * Et;
-        CvMat * E_phi;
-        CvMat * E_theta;
         CvMat * Rot;
         CvMat * Rotderiv;
         CvMat * x;
@@ -137,15 +125,17 @@ public:
 
 	CvMat * Fpose;
 	CvMat * Qpose;
+        
+        CvMat * temp8;
+        CvMat * temp81;
+        CvMat * temp4;
+        CvMat * temp41;
+        CvMat * temp43;
         CvMat * temp31;
         CvMat * temp312;
         CvMat * temp33;
         CvMat * Vcov;
         CvMat * Wcov;
-
-        CvMat * temp38;
-        CvMat * temp83;
-        CvMat * temp88;
 
         //Curve transformation matrices (used in Jacobian computation)
         CvMat * Ainv;

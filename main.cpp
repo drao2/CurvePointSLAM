@@ -42,12 +42,12 @@
 #define TOP_Y_CUTOFF    50
 //#define FRAMES_TO_SKIP  3101
 #define FRAMES_TO_SKIP  300
-#define LENGTH_EACH_CURVE  75
+#define LENGTH_EACH_CURVE  100
 #define NUM_FRAMES_DA_RESET     2       //Number of frames without a valid curve measurement after which 
 //we reset the data association and start with new curves
 
 
-#define CURVE_MIN_OBS   0.25     //Min amount of a curve that needs to be observed before it is introduced
+#define CURVE_MIN_OBS   0.5     //Min amount of a curve that needs to be observed before it is introduced
 
 using namespace std;
 
@@ -1267,7 +1267,7 @@ int main(void)
                         //cout << "TOTAL: " << elapsedTime << endl;
             gettimeofday(&start, NULL);
             
-            cvWaitKey(0);
+            cvWaitKey(5);
         }
 
 	return 0;

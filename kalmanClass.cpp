@@ -5,6 +5,7 @@ using namespace std;
 
 KalmanFilter::KalmanFilter()
 {
+        //Matrices related to curve splitting
         Ainv = newMatrix(4,4,CV_64FC1);
         Ainvzx = newMatrix(4,1,CV_64FC1);
         Ainvzy = newMatrix(4,1,CV_64FC1);
@@ -16,6 +17,8 @@ KalmanFilter::KalmanFilter()
 	A2 = newMatrix(4,4,CV_64FC1);
 	B1 = newMatrix(4,4,CV_64FC1);
 	B2 = newMatrix(4,4,CV_64FC1);
+        
+        //Measurement model matrices
 	H = newMatrix(8,8,CV_64FC1);
 	H1 = newMatrix(8,8+ROBOT_STATE_SIZE,CV_64FC1);
 	H1t = newMatrix(8+ROBOT_STATE_SIZE,8,CV_64FC1);
@@ -34,31 +37,23 @@ KalmanFilter::KalmanFilter()
 	K2 = newMatrix(16+ROBOT_STATE_SIZE,16,CV_64FC1);
 	delP2 = newMatrix(16+ROBOT_STATE_SIZE,16+ROBOT_STATE_SIZE,CV_64FC1);
 	delx2 = newMatrix(16+ROBOT_STATE_SIZE,1,CV_64FC1);
-	temp19 = newMatrix(16+ROBOT_STATE_SIZE,16+ROBOT_STATE_SIZE,CV_64FC1);
-	temp16 = newMatrix(16,16,CV_64FC1);
-	temp161 = newMatrix(16,1,CV_64FC1);
-	temp1916 = newMatrix(16+ROBOT_STATE_SIZE,16,CV_64FC1);
-	temp11 = newMatrix(8+ROBOT_STATE_SIZE,8+ROBOT_STATE_SIZE,CV_64FC1);
-	temp8 = newMatrix(8,8,CV_64FC1);
-	temp81 = newMatrix(8,1,CV_64FC1);
-	temp118 = newMatrix(8+ROBOT_STATE_SIZE,8,CV_64FC1);
-	temp4 = newMatrix(4,4,CV_64FC1);
-	temp41 = newMatrix(4,1,CV_64FC1);
         Rot = newMatrix(8,8,CV_64FC1);
         Rotderiv = newMatrix(8,8,CV_64FC1);
         
         
-        
+        //Process model matrices
         Reb = newMatrix(3,3,CV_64FC1);
         Rebt = newMatrix(3,3,CV_64FC1);
         Reb_phi = newMatrix(3,3,CV_64FC1);
         Reb_theta = newMatrix(3,3,CV_64FC1);
         Reb_psi = newMatrix(3,3,CV_64FC1);
-        E = newMatrix(3,3,CV_64FC1);
-        Et = newMatrix(3,3,CV_64FC1);
-        E_phi = newMatrix(3,3,CV_64FC1);
-        E_theta = newMatrix(3,3,CV_64FC1);
         
+        //Temporary matrices of various sizes
+	temp8 = newMatrix(8,8,CV_64FC1);
+	temp81 = newMatrix(8,1,CV_64FC1);
+	temp4 = newMatrix(4,4,CV_64FC1);
+	temp41 = newMatrix(4,1,CV_64FC1);
+	temp43 = newMatrix(4,3,CV_64FC1);
 	temp31 = newMatrix(3,1,CV_64FC1);
 	temp312 = newMatrix(3,1,CV_64FC1);
 	temp33 = newMatrix(3,3,CV_64FC1);
@@ -91,13 +86,9 @@ KalmanFilter::KalmanFilter()
 	Qpose = newMatrix(ROBOT_STATE_SIZE,ROBOT_STATE_SIZE,CV_64FC1);
 
 
-
 	Gx = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
 	Gz = newMatrix(8,8,CV_64FC1);
-
-        temp38 = newMatrix(ROBOT_STATE_SIZE,8,CV_64FC1);
-        temp83 = newMatrix(8,ROBOT_STATE_SIZE,CV_64FC1);
-        temp88 = newMatrix(8,8,CV_64FC1);
+        
         Prr = newMatrix(ROBOT_STATE_SIZE,ROBOT_STATE_SIZE,CV_64FC1);
 
         // R is diagonal matrix with measurement covariance
@@ -130,6 +121,7 @@ KalmanFilter::KalmanFilter()
 }
 KalmanFilter::~KalmanFilter()
 {
+    //Release all matrices
     cvReleaseMat(&A1);
     cvReleaseMat(&A2);
     cvReleaseMat(&B1);
@@ -153,6 +145,8 @@ KalmanFilter::~KalmanFilter()
     cvReleaseMat(&temp8);
     cvReleaseMat(&temp4);
     cvReleaseMat(&temp41);
+    cvReleaseMat(&temp43);
+    cvReleaseMat(&temp31);
     cvReleaseMat(&x);
     cvReleaseMat(&P);
     cvReleaseMat(&xcurrent8);
@@ -163,6 +157,7 @@ KalmanFilter::~KalmanFilter()
 
 }
 
+//Process model of the EKF, updates state and covariance
 void KalmanFilter::PredictKF()
 {
     //Initialise matrices containing parts of the cov mat
@@ -276,9 +271,10 @@ void KalmanFilter::PredictKF()
     cvReleaseMat(&Pri);
 }
 
+//Adds the first curve states and initialises covariance
 void KalmanFilter::AddFirstStates(CvMat * measurement)
 {
-    //Adds the first curve states and initialises covariance
+    
     cvSetZero(P);
     cvSetZero(x);
     
@@ -314,6 +310,7 @@ void KalmanFilter::AddFirstStates(CvMat * measurement)
 
 }
 
+//Adds a new curve state (8dim) and initialises its covariance
 void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 {
 	gettimeofday(&start, NULL);
@@ -501,6 +498,7 @@ void KalmanFilter::AddNewCurve(CvMat * z, CvMat * A)
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
 
+//Adds a bunch of new point states (3dim each) and initialise their covariance
 void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 {
     gettimeofday(&start, NULL);
@@ -508,6 +506,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
         cout << " " << measurements[i];
     cout << endl;
     
+    //Only proceed if we have points to add
     if (n_pts)
     {        
         double phi = x->data.db[3];
@@ -535,8 +534,8 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
         cvReleaseMat(&xcopy);
         cvReleaseMat(&Pcopy);
 
-        //Set new landmark states, and find Gx and Gz, and fill in covariance blocks, all in one
-        //Gx is not the same for all landmarks, since the angular terms are coupled with xb!
+        //Set new landmark states, find Gx and Gz, and fill in covariance blocks, all in one
+        //Gx needs to be computed separately for each landmark, since the angular terms are coupled with xb!
         CvMat * xb = newMatrix(3,1,CV_64FC1);
         CvMat * temp31 = newMatrix(3,1,CV_64FC1);
         CvMat * temp33 = newMatrix(3,3,CV_64FC1);
@@ -578,7 +577,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
         for (int n = 0; n < n_pts; n++)
         {
             
-            //Numeric calculation to verify
+            //Numeric Jacobian calculations to verify (uncomment if needed))
             //getGxNumeric(Gxnum,&measurements[4*n],x);
             //getGzNumeric(Gznum,&measurements[4*n],x);
             
@@ -622,7 +621,7 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
 
             cvMatMul(Gx,Prr,PN1r);
 
-            //Add new bits (PN1N1, PN1R and PN1i, where i = other landmarks)
+            //Add new bits (PN1N1, PN1R and PN1i, where i = other landmarks,N1 = new landmark, R = robot state)
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
@@ -666,12 +665,9 @@ void KalmanFilter::AddNewPoints(double * measurements, int n_pts)
             (start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
 
+//Update exsting states (both curve and point landmarks, including case where no points are used)
 void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vector<CvMat *> * A, vector<int> * curve_num, double * point_meas, int * point_nums, int n_pts)
 {
-	gettimeofday(&start, NULL);
-        for (int i = 0; i < n_pts*3; i++)
-            cout << " " << point_meas[i];
-        cout << endl;
         
         //Initialise data structures
         int curve_meas_size = n*8+3;
@@ -716,8 +712,6 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 
         cvSetZero(temp8);
         cvSetZero(temp81);
-        cvSetZero(temp16);
-        cvSetZero(temp161);
         cvSetZero(H);
         cvSetZero(Rotderiv);
 
@@ -799,9 +793,9 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         
         //Point measurement terms
         CvMat * dzdxb = newMatrix(4,3,CV_64FC1);
-        CvMat * temp43 = newMatrix(4,3,CV_64FC1);
-        CvMat * temp41 = newMatrix(4,1,CV_64FC1);
-        CvMat * temp31 = newMatrix(3,1,CV_64FC1);
+        cvSetZero(temp41);
+        cvSetZero(temp43);
+        cvSetZero(temp31);
         CvMat * xe = newMatrix(3,1,CV_64FC1);
         CvMat * xb = newMatrix(3,1,CV_64FC1);
         CvMat * Tbe = newMatrix(3,1,CV_64FC1);
@@ -857,9 +851,6 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         }
 
         cvReleaseMat(&dzdxb);
-        cvReleaseMat(&temp43);
-        cvReleaseMat(&temp41);
-        cvReleaseMat(&temp31);
         cvReleaseMat(&xe);
         cvReleaseMat(&xb);
         cvReleaseMat(&Tbe);
@@ -888,7 +879,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
         //cvSub(H,Hnum,Hnum);
         //cout << cvNorm(Hnum) << endl;
         
-        //Update state
+        //Get predicted measurement
         for (int i = 0; i < n; i++)
         {
             GetPredictedMeasurement(temp81,x,A->at(i),curve_num->at(i));
@@ -903,32 +894,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
             cvmSet(tempn1,i+curve_meas_size,0,predicted_meas_pts->data.db[i]);
         }
         
-        /*//Print all measurements and predicted measurements
-        cout << "Curves measured:\n\n";
-        for (int i = 0; i < n; i++)  //Curves
-        {
-            cout << "Curve num: " << curve_num->at(i) << ",\tPredicted Meas: ";
-            for (int j = 0; j < 8; j++)
-                cout << tempn1->data.db[i*8+j] << " ";
-            cout << ",\tActual Meas: ";
-            for (int j = 0; j < 8; j++)
-                cout << z->data.db[i*8+j] << " ";
-            cout << endl;
-        }
-        cout << "Points measured:\n\n";
-        for (int i = 0; i < n_pts; i++)  //Points
-        {
-            cout << "Point num: " << point_nums[i] << ",\tPredicted Meas: ";
-            for (int j = 0; j < 4; j++)
-                cout << tempn1->data.db[n*8+3+i*4+j] << " ";
-            cout << ",\tActual Meas: ";
-            for (int j = 0; j < 4; j++)
-                cout << z->data.db[n*8+3+i*4+j] << " ";
-            cout << endl;
-        }*/
-        
-        printMatrix(tempn1);
-        printMatrix(z);
+        //Compute innovation and update state
         cvSub(z,tempn1,tempn1);
         cvMatMul(K,tempn1,delx);
         cvAdd(x,delx,x);
@@ -978,6 +944,7 @@ void KalmanFilter::UpdateNCurvesAndPoints(CvMat * measurement, int n, std::vecto
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
 
+//Update existing states (only points))
 void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts)
 {
 	gettimeofday(&start, NULL);
@@ -1018,8 +985,6 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
 
         cvSetZero(temp8);
         cvSetZero(temp81);
-        cvSetZero(temp16);
-        cvSetZero(temp161);
         cvSetZero(H);
 
         double Tx = x->data.db[0];
@@ -1086,10 +1051,10 @@ void KalmanFilter::UpdatePoints(double * point_meas, int * point_nums, int n_pts
         }
         
         //Get numeric Jacobian to compare
-        CvMat * Hnum = newMatrix(meas_size, existing_size, CV_64FC1);
-        std::vector<CvMat *> * A;
-        vector<int> * curve_num;
-        getHNumeric(H,x, 0, A, curve_num, point_nums, n_pts);
+        //CvMat * Hnum = newMatrix(meas_size, existing_size, CV_64FC1);
+        //std::vector<CvMat *> * A;
+        //vector<int> * curve_num;
+        //getHNumeric(H,x, 0, A, curve_num, point_nums, n_pts);
         //cvSub(Hnum,H,Hnum);
         //printMatrix(Hnum);
         
@@ -1175,6 +1140,7 @@ CvMat * KalmanFilter::getState()
 	return x;
 }
 
+//Given a t value, obtain split matrices
 void KalmanFilter::GetSplitMatrices(double t, CvMat * A1, CvMat * A2)
 {
     cvSetZero(A1);
@@ -1192,6 +1158,7 @@ void KalmanFilter::GetSplitMatrices(double t, CvMat * A1, CvMat * A2)
 		(start.tv_sec*1000.0 + start.tv_usec/1000.0);
 }
 
+//Get predicted curve measurements based on state vector
 void KalmanFilter::GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvMat * A, int num_curve)
 {
     double Tx = x_current->data.db[0];
@@ -1231,6 +1198,7 @@ void KalmanFilter::GetPredictedMeasurement(CvMat * z_hat, CvMat * x_current, CvM
     
 }
 
+//Initialise new matrix and set to zero
 CvMat * KalmanFilter::newMatrix(int rows, int cols, int type)
 {
     CvMat * matrix = cvCreateMat(rows,cols,type);
@@ -1255,6 +1223,10 @@ bool KalmanFilter::CheckValidMeasurement(double theta, double phi, double z, int
 
 }
 
+
+//Take in Euler angles as params
+//Return 3 matrices, which are the rotation matrix R_eb with each term differentiated
+// with respect to phi, theta, and psi
 void KalmanFilter::get_Reb_derivs(double phi, double theta, double psi, CvMat * R_eb_phi, CvMat * R_eb_theta, CvMat * R_eb_psi)
 {
         cvmSet(R_eb_phi,0,0, 0.0);
@@ -1288,6 +1260,10 @@ void KalmanFilter::get_Reb_derivs(double phi, double theta, double psi, CvMat * 
         cvmSet(R_eb_psi,2,2, 0.0);
 }
 
+
+//Take in Euler angles as params
+//Return 3 matrices, which are the rotation matrix R_be with each term differentiated
+// with respect to phi, theta, and psi
 void KalmanFilter::get_Rbe_derivs(double phi, double theta, double psi, CvMat * R_be_phi, CvMat * R_be_theta, CvMat * R_be_psi)
 {
         cvmSet(R_be_phi,0,0, 0.0);
@@ -1347,6 +1323,7 @@ void KalmanFilter::printMatrix(CvMat * matrix)
     cout << endl;
 }
 
+//Get numeric Jacobian for point measurements (FOR VERIFICATION ONLY!)
 void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> * A, vector<int> * curve_num, int * point_nums, int n_pts)
 {
     CvMat * pt1 = newMatrix(H->rows,1,CV_64FC1);      
@@ -1398,6 +1375,7 @@ void KalmanFilter::getHNumeric(CvMat * H,CvMat * x, int n, std::vector<CvMat *> 
     cvReleaseMat(&grad);
 }
 
+//Predict point meas from state
 void KalmanFilter::predictPointMeas(CvMat * meas, CvMat * x, int point_num)
 {
     CvMat * R_be = newMatrix(3,3,CV_64FC1);
@@ -1420,6 +1398,7 @@ void KalmanFilter::predictPointMeas(CvMat * meas, CvMat * x, int point_num)
     meas->data.db[2] = xb->data.db[2];
 }
 
+//Get numeric Jacobian for point initialisation wrt state (FOR VERIFICATION ONLY!)
 void KalmanFilter::getGxNumeric(CvMat * Gx,double * measurement,CvMat * x)
 {
     CvMat * pt1 = newMatrix(3,1,CV_64FC1);
@@ -1441,6 +1420,8 @@ void KalmanFilter::getGxNumeric(CvMat * Gx,double * measurement,CvMat * x)
     cvReleaseMat(&pt2);
     cvReleaseMat(&grad);
 }
+
+//Get numeric Jacobian for point initialisation wrt measurement (FOR VERIFICATION ONLY!)
 void KalmanFilter::getGzNumeric(CvMat * Gz,double * measurement,CvMat * x)
 {    
     CvMat * pt1 = newMatrix(3,1,CV_64FC1);
@@ -1462,6 +1443,8 @@ void KalmanFilter::getGzNumeric(CvMat * Gz,double * measurement,CvMat * x)
     cvReleaseMat(&pt2);
     cvReleaseMat(&grad);
 }
+
+//Initialise point from measurement
 void KalmanFilter::InitPoint(CvMat * pt,double * measurement,CvMat * x)
 {
     double xl = measurement[0];
@@ -1480,6 +1463,8 @@ void KalmanFilter::InitPoint(CvMat * pt,double * measurement,CvMat * x)
         pt->data.db[j] += x->data.db[j];   //xe = R_eb*xb+T_eb, T_eb = x[0:2]
 
 }
+
+//Initialise point from measurement
 void KalmanFilter::InitPointDirect(CvMat * pt,double * measurement,CvMat * x)
 {
     CvMat * R_eb = newMatrix(3,3,CV_64FC1);
@@ -1495,6 +1480,7 @@ void KalmanFilter::InitPointDirect(CvMat * pt,double * measurement,CvMat * x)
 
 }
 
+//Get numeric Jacobian for curve initialisation wrt state (FOR VERIFICATION ONLY!)
 void KalmanFilter::getGxCurveNumeric(CvMat * Gx,CvMat * z,CvMat * x, CvMat * A)
 {
     CvMat * pt1 = newMatrix(8,1,CV_64FC1);
@@ -1517,6 +1503,7 @@ void KalmanFilter::getGxCurveNumeric(CvMat * Gx,CvMat * z,CvMat * x, CvMat * A)
     cvReleaseMat(&grad);
 }
 
+//Get numeric Jacobian for curve initialisation wrt measurement (FOR VERIFICATION ONLY!)
 void KalmanFilter::getGzCurveNumeric(CvMat * Gz,CvMat * z,CvMat * x, CvMat * A)
 {
     CvMat * pt1 = newMatrix(8,1,CV_64FC1);
@@ -1539,6 +1526,7 @@ void KalmanFilter::getGzCurveNumeric(CvMat * Gz,CvMat * z,CvMat * x, CvMat * A)
     cvReleaseMat(&grad);
 }
 
+//Initialise curve from measurement
 void KalmanFilter::InitCurve(CvMat * curve, CvMat * z, CvMat * x, CvMat * A)
 {
     CvMat * Ainv = newMatrix(4,4,CV_64FC1);
