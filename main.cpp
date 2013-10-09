@@ -1267,7 +1267,7 @@ int main(void)
                         //cout << "TOTAL: " << elapsedTime << endl;
             gettimeofday(&start, NULL);
             
-            cvWaitKey(5);
+            cvWaitKey(0);
         }
 
 	return 0;
