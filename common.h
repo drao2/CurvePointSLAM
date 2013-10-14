@@ -105,6 +105,7 @@
 #define LEFT	0
 #define RIGHT	1
 
+#define TOP_Y_CUTOFF    50
 
 #define PI  3.1415926535
 

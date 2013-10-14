@@ -39,7 +39,6 @@
 //#define ERROR_THRESHOLD 23000.0
 
 #define FRAME_INTERVAL  1
-#define TOP_Y_CUTOFF    50
 //#define FRAMES_TO_SKIP  3101
 #define FRAMES_TO_SKIP  300
 #define LENGTH_EACH_CURVE  100
@@ -369,11 +368,6 @@ int main(void)
                 }
                 counter++;
             }
-                //cvShowImage("Left",image_color[LEFT]);
-                //cvShowImage("Right",image_color[RIGHT]);
-                //cvShowImage("Last Left",last_image_color[LEFT]);
-                //cvShowImage("Last Right",last_image_color[RIGHT]);
-                //cvWaitKey(10);
             int n_pts_existing = 0;
             int n_pts_new = 0;
             double point_meas_existing[150];
@@ -385,13 +379,13 @@ int main(void)
             cvCopy(image_raw[1], image_color[1], NULL);
             //use_points = true;
             
-            //Get point measurements (only if not first time and !valid_last_measurement
             if(!first_time)
             {
-                if (use_points) //Only get/track point measurements if we need to
+                //Get point measurements (only if not first frame and previous curve measurement was invalid)
+                if (use_points)
                         pointFeatures->getPointMeasurements(&last_image[0],&image[0], &image_color[0], &point_meas_new[0],&n_pts_new,&point_meas_existing[0],&n_pts_existing, &correspondences[0], &planar_pose_meas[0]);
 
-                EKF->PredictKF();
+                EKF->PredictKF();       //Also perform EKF predict step if not first time
             }
 
 
@@ -412,14 +406,16 @@ int main(void)
 
 
 
-//PROCESS POINTS TO MAKE THEM NEATER
-            //Also make sure the same amount is observed in both images
+//GET EDGE POINTS AND GROUP THEM
+            //Extract edge points from both images
             std::vector<CvPoint> ** featuresL =features[LEFT].return_features();
             std::vector<CvPoint> ** featuresR =features[RIGHT].return_features();
 
-//Below: A lot of hacky stuff to make the lengths the same, etc!
+            //Below: hacky stuff to make the lengths the same, etc! (same amount of each curve observed in both images, etc)
             CvMat * featuresLeftImage[2];
             CvMat * featuresRightImage[2];
+            curveFitter->cleanup_and_group_edges(featuresL,featuresR,featuresLeftImage,featuresRightImage);
+            
             int left_y_cutoff[] = {MIN(TOP_Y_CUTOFF,curveMatcher[0].map_endpt_tracked.y),MIN(TOP_Y_CUTOFF,curveMatcher[1].map_endpt_tracked.y)};
             if(first_time)
             {
