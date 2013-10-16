@@ -84,7 +84,7 @@ public:
     void generateMeasurements(CvMat * state_actual, double t, CvMat * featuresL, CvMat * featuresR, int current_curves);
 
 
-        void cleanup_and_group_edges(std::vector<CvPoint> ** featuresL, std::vector<CvPoint> ** featuresR, CvMat * featuresLnew, CvMat * featuresRnew);      //Function to cleanup edge points and make sure the same amount of each curve is observed in both images
+        bool cleanup_and_group_edges(std::vector<CvPoint> ** featuresL, std::vector<CvPoint> ** featuresR, CvMat ** featuresLnew, CvMat ** featuresRnew, bool reset_data_assoc, int * left_y_cutoff, double * tracked_endpt_y);      //Function to cleanup edge points and make sure the same amount of each curve is observed in both images
 
         float getTime();
 	void resetTime();

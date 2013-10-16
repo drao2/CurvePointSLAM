@@ -106,6 +106,10 @@
 #define RIGHT	1
 
 #define TOP_Y_CUTOFF    50
+#define LEFT_RIGHT_OFFSET   0
+//#define LEFT_RIGHT_OFFSET   2
+//#define LEFT_RIGHT_OFFSET   -2
+#define LENGTH_EACH_CURVE  100
 
 #define PI  3.1415926535
 
@@ -125,7 +129,7 @@
 #define USE_VIDEO
 //#define SAVE_VIDEO
 
-#define VIDEO_FILENAME "cam24%d.avi"
+#define VIDEO_FILENAME "cam29%d.avi"
 
 
 //Macros

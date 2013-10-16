@@ -31,9 +31,6 @@
         #endif
     #endif
 #endif
-#define LEFT_RIGHT_OFFSET   0
-//#define LEFT_RIGHT_OFFSET   2
-//#define LEFT_RIGHT_OFFSET   -2
 
 #define ERROR_THRESHOLD 50000.0
 //#define ERROR_THRESHOLD 23000.0
@@ -41,7 +38,6 @@
 #define FRAME_INTERVAL  1
 //#define FRAMES_TO_SKIP  3101
 #define FRAMES_TO_SKIP  300
-#define LENGTH_EACH_CURVE  100
 #define NUM_FRAMES_DA_RESET     2       //Number of frames without a valid curve measurement after which 
 //we reset the data association and start with new curves
 
@@ -412,213 +408,19 @@ int main(void)
             std::vector<CvPoint> ** featuresR =features[RIGHT].return_features();
 
             //Below: hacky stuff to make the lengths the same, etc! (same amount of each curve observed in both images, etc)
-            CvMat * featuresLeftImage[2];
-            CvMat * featuresRightImage[2];
-            curveFitter->cleanup_and_group_edges(featuresL,featuresR,featuresLeftImage,featuresRightImage);
-            
             int left_y_cutoff[] = {MIN(TOP_Y_CUTOFF,curveMatcher[0].map_endpt_tracked.y),MIN(TOP_Y_CUTOFF,curveMatcher[1].map_endpt_tracked.y)};
             if(first_time)
             {
                 left_y_cutoff[0] = TOP_Y_CUTOFF;
                 left_y_cutoff[1] = TOP_Y_CUTOFF;                    
             }
-            int RangeLeftImage[2][2] = { {0, featuresL[0]->size()-1}, {0, featuresL[1]->size()-1} };
-            int RangeRightImage[2][2] = { {0, featuresR[0]->size()-1}, {0, featuresR[1]->size()-1} };
-
-            if (featuresL[0]->size() < 10 || featuresL[1]->size() < 10 || featuresR[0]->size() < 10 || featuresR[1]->size() < 10)
-                edges_detected = false;
-            else
-            {
-                edges_detected = true;
-                int ystartLeftImage[] = {featuresL[0]->at(0).y,featuresL[1]->at(0).y};
-                int yendLeftImage[] = {featuresL[0]->at(featuresL[0]->size()-1).y,featuresL[1]->at(featuresL[1]->size()-1).y};
-                int ystartRightImage[] = {featuresR[0]->at(0).y,featuresR[1]->at(0).y};
-                int yendRightImage[] = {featuresR[0]->at(featuresR[0]->size()-1).y,featuresR[1]->at(featuresR[1]->size()-1).y};
-
-                //Trim edge sequences so they match up and aren't too long!!!!
-                for (int i = 0; i < 2; i++)
-                {
-                    //If left curve in left image starts lower, then remove edge points from start from left image
-                    if (ystartLeftImage[i] > ystartRightImage[i]-LEFT_RIGHT_OFFSET && edges_detected)
-                    {
-                        while(ystartLeftImage[i] > ystartRightImage[i]-LEFT_RIGHT_OFFSET)
-                        {
-                            RangeLeftImage[i][0]++;
-
-                            if (RangeLeftImage[i][0] >= featuresL[i]->size())
-                            {
-                                edges_detected = false;
-                                break;
-                            }
-                            ystartLeftImage[i] = featuresL[i]->at(RangeLeftImage[i][0]).y;
-                        }
-
-                    }
-                    //If right curve in left image starts lower, then remove edge points from start from right image
-                    else if (ystartLeftImage[i] < ystartRightImage[i]-LEFT_RIGHT_OFFSET && edges_detected)
-                    {
-                        while(ystartLeftImage[i] < ystartRightImage[i]-LEFT_RIGHT_OFFSET)
-                        {
-                            RangeRightImage[i][0]++;
-
-                            if (RangeRightImage[i][0] >= featuresR[i]->size())
-                            {
-                                edges_detected = false;
-                                break;
-                            }
-                            ystartRightImage[i] = featuresR[i]->at(RangeRightImage[i][0]).y;
-                        }
-
-                    }
-                }
-
-                for (int i = 0; i < 2; i++)
-                {
-                    //If left curve in left image starts lower, then remove edge points from start from left image
-                    if (yendLeftImage[i] < yendRightImage[i]-LEFT_RIGHT_OFFSET && edges_detected)
-                    {
-                        while(yendLeftImage[i] < yendRightImage[i]-LEFT_RIGHT_OFFSET)
-                        {
-                            RangeLeftImage[i][1]--;
-
-                            if (RangeLeftImage[i][1] < 0)
-                            {
-                                edges_detected = false;
-                                break;
-                            }
-                            yendLeftImage[i] = featuresL[i]->at(RangeLeftImage[i][1]).y;
-                        }
-
-                    }
-                    //If left curve in right image starts lower, then remove edge points from start from right image
-                    else if (yendLeftImage[i] > yendRightImage[i]-LEFT_RIGHT_OFFSET && edges_detected)
-                    {
-                        while(yendLeftImage[i] > yendRightImage[i]-LEFT_RIGHT_OFFSET)
-                        {
-                            RangeRightImage[i][1]--;
-
-                            if (RangeRightImage[i][1] < 0)
-                            {
-                                edges_detected = false;
-                                break;
-                            }
-                            yendRightImage[i] = featuresR[i]->at(RangeRightImage[i][1]).y;
-                        }
-                    }
-
-                    while(yendLeftImage[i] < ystartLeftImage[i]-LENGTH_EACH_CURVE && edges_detected)
-                    {
-                        RangeLeftImage[i][1]--;
-
-                        if (RangeLeftImage[i][1] < 0 )
-                        {
-                            edges_detected = false;
-                            break;
-                        }
-                        yendLeftImage[i] = featuresL[i]->at(RangeLeftImage[i][1]).y;
-                    }
-                    while(yendRightImage[i] < ystartRightImage[i]-LENGTH_EACH_CURVE && edges_detected)
-                    {
-                        RangeRightImage[i][1]--;
-
-                        if (RangeRightImage[i][1] < 0 )
-                        {
-                            edges_detected = false;
-                            break;
-                        }
-                        yendRightImage[i] = featuresR[i]->at(RangeRightImage[i][1]).y;
-                    }
-
-
-                    while(yendLeftImage[i] > curveMatcher[i].map_endpt_tracked.y && !reset_data_assoc)
-                    {
-                        RangeLeftImage[i][0]++;
-                        RangeLeftImage[i][1]++;
-
-                        if (RangeLeftImage[i][0] >= featuresL[i]->size() || RangeLeftImage[i][1] >= featuresL[i]->size() )
-                        {
-                            edges_detected = false;
-                            break;
-                        }
-                        yendLeftImage[i] = featuresL[i]->at(RangeLeftImage[i][1]).y;
-                    }
-                    while(yendRightImage[i] > curveMatcher[i].map_endpt_tracked.y + LEFT_RIGHT_OFFSET && !reset_data_assoc)
-                    {
-                        RangeRightImage[i][1]++;
-                        RangeRightImage[i][0]++;
-
-                        if (RangeRightImage[i][0] >= featuresR[i]->size() || RangeRightImage[i][1] >= featuresR[i]->size() )
-                        {
-                            edges_detected = false;
-                            break;
-                        }
-                        yendRightImage[i] = featuresR[i]->at(RangeRightImage[i][1]).y;
-                    }
-
-                }
-                if(yendLeftImage[0] > yendLeftImage[1])
-                {
-                    while(yendLeftImage[0] > yendLeftImage[1])
-                    {
-                        RangeLeftImage[0][0]++;
-                        RangeLeftImage[0][1]++;
-
-                            if (RangeLeftImage[0][0] >= featuresL[0]->size() || RangeLeftImage[0][1] >= featuresL[0]->size() )
-                            {
-                                edges_detected = false;
-                                break;
-                            }
-                        yendLeftImage[0] = featuresL[0]->at(RangeLeftImage[0][1]).y;
-                    }
-                }
-                else
-                {
-                    while(yendLeftImage[0] < yendLeftImage[1])
-                    {
-                        RangeLeftImage[1][0]++;
-                        RangeLeftImage[1][1]++;
-
-                            if (RangeLeftImage[1][0] >= featuresL[1]->size() || RangeLeftImage[1][1] >= featuresL[1]->size() )
-                            {
-                                edges_detected = false;
-                                break;
-                            }
-                        yendLeftImage[1] = featuresL[1]->at(RangeLeftImage[1][1]).y;
-                    }
-                }
-
-                if (yendRightImage[0] > yendRightImage[1])
-                {
-                    while(yendRightImage[0] > yendRightImage[1])
-                    {
-                        RangeRightImage[0][0]++;
-                        RangeRightImage[0][1]++;
-
-                        if (RangeRightImage[0][0] >= featuresR[0]->size() || RangeRightImage[0][1] >= featuresR[0]->size() )
-                        {
-                            edges_detected = false;
-                            break;
-                        }
-                        yendRightImage[0] = featuresR[0]->at(RangeRightImage[0][1]).y;
-                    }
-                }
-                else
-                {
-                    while(yendRightImage[0] < yendRightImage[1])
-                    {
-                        RangeRightImage[1][0]++;
-                        RangeRightImage[1][1]++;
-
-                        if (RangeRightImage[1][0] >= featuresR[1]->size() || RangeRightImage[1][1] >= featuresR[1]->size() )
-                        {
-                            edges_detected = false;
-                            break;
-                        }
-                        yendRightImage[1] = featuresR[1]->at(RangeRightImage[1][1]).y;
-                    }
-                }
-            }
-
+            CvMat * featuresLeftImage[2];
+            CvMat * featuresRightImage[2];
+            double tracked_endpt_y[] = {curveMatcher[0].map_endpt_tracked.y,curveMatcher[1].map_endpt_tracked.y};
+            //cout << "1\n";
+            edges_detected = curveFitter->cleanup_and_group_edges(featuresL,featuresR,&featuresLeftImage[0],&featuresRightImage[0], reset_data_assoc, &left_y_cutoff[0], &tracked_endpt_y[0]);
+            //cout << "2\n";
+            
             CvMat * state_current = EKF->getState();
             
             //Only proceed if the above was successful and we have edges to work with
@@ -629,27 +431,6 @@ int main(void)
             }
             else
             {
-                //Copy features into CvMat form
-                for (int n = 0; n < 2; n++)
-                {
-                    featuresLeftImage[n] = cvCreateMat(2*MIN(RangeLeftImage[n][1]-RangeLeftImage[n][0]+1,10000),1,CV_64FC1);
-                    featuresRightImage[n] = cvCreateMat(2*MIN(RangeRightImage[n][1]-RangeRightImage[n][0]+1,10000),1,CV_64FC1);
-                }
-
-
-                for (int n = 0; n < 2; n++)
-                {
-                    for(int i = 0; i < featuresLeftImage[n]->rows/2; i++)
-                    {
-                        featuresLeftImage[n]->data.db[2*i] = featuresL[n]->at(RangeLeftImage[n][0]+i).x;
-                        featuresLeftImage[n]->data.db[2*i+1] = featuresL[n]->at(RangeLeftImage[n][0]+i).y;
-                    }
-                    for(int i = 0; i < featuresRightImage[n]->rows/2; i++)
-                    {
-                        featuresRightImage[n]->data.db[2*i] = featuresR[n]->at(RangeRightImage[n][0]+i).x;
-                        featuresRightImage[n]->data.db[2*i+1] = featuresR[n]->at(RangeRightImage[n][0]+i).y;
-                    }
-                }
 
                 double euler[3], euler_last[3];
                 double translation[3], translation_last[3];
