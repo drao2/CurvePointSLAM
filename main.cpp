@@ -61,6 +61,7 @@ int main(void)
         cam_index[LEFT] = 1;
         cam_index[RIGHT] = 2;
 
+        //Define classes
         CaptureDevice *camera = new CaptureDevice[NUM_CAMERAS];
 	DisplayClass *display_GUI = new DisplayClass;
         KalmanFilter *EKF = new KalmanFilter;
@@ -69,6 +70,7 @@ int main(void)
 	FeatureDetector *features = new FeatureDetector[NUM_CAMERAS];
         PointFeaturesClass *pointFeatures = new PointFeaturesClass;
 
+        //Define image data
 	IplImage * image[NUM_CAMERAS];
 	IplImage * image_raw[NUM_CAMERAS];
 	IplImage * last_image_raw[NUM_CAMERAS];
@@ -78,7 +80,7 @@ int main(void)
 	IplImage * last_image[NUM_CAMERAS];
 	IplImage * last_image_track[NUM_CAMERAS];
         
-        //Stereo rectification
+        //Stereo rectification parameters
         CvSize imageSize = cvSize(PIC_WIDTH,PIC_HEIGHT);
         CvMat * mx[2], * my[2];
         mx[0] = cvCreateMat( imageSize.height,
@@ -92,7 +94,6 @@ int main(void)
         CvMat* disp = cvCreateMat( imageSize.height,
             imageSize.width, CV_16S );
         CvRect roi[2];
-        
         CvMat *M1 = cvCreateMat(3, 3, CV_64F);
         CvMat *M2 = cvCreateMat(3, 3, CV_64F);
         CvMat *D1 = cvCreateMat(1, 5, CV_64F);
@@ -156,6 +157,7 @@ int main(void)
         cvInitUndistortRectifyMap(M1,D1,R1,P1,mx[0],my[0]);
         cvInitUndistortRectifyMap(M2,D2,R2,P2,mx[1],my[1]);
 
+        //Initialise the capture for both cameras (videos)
 	for (int i = 0; i < NUM_CAMERAS; ++i)
 	{
 		camera[i].init_capture(cam_index[i]);	//+1 is so we dont use the laptop webcam
@@ -206,7 +208,7 @@ int main(void)
             }
         }
         
-        //Get extra from either left or right camera based on lag
+        //Get extra from either left or right camera based on what we think the lag is
         //(Need frames to be synchronised)
         for (int i = 0; i < LEFT_IMAGE_LAG; ++i)
         {
@@ -306,6 +308,8 @@ int main(void)
         double * t_splitL = &t_split_default[0];
         double * t_splitR = &t_split_default[0];
         
+        
+//MAIN LOOP OVER VIDEO FRAMES
         
        
         int count = 0;
@@ -512,7 +516,7 @@ int main(void)
                     display_GUI->display_images(image[0], image[1], featuresLeftImage, featuresRightImage, p_left, p_right,image_color[0], image_color[1]);
 
 
-    // DETERMINE DATA ASSOCIATION (getMatchT) TO FIND THE T-VALUES TO SPLIT AT
+// DETERMINE DATA ASSOCIATION (getMatchT) TO FIND THE T-VALUES TO SPLIT AT
                     for (int i = 0; i < 6; i++)
                     {
                         last_t_split[i] = t_split[i];
@@ -636,10 +640,6 @@ int main(void)
                     first_time = false;
                 }
 
-
-
-
-
                 //Plot features on images
                 for( int i = 0; i < featuresLeftImage[LEFT]->rows/2; i++)
                 {
@@ -657,10 +657,7 @@ int main(void)
                 {
                         cvCircle(image_color[RIGHT],cvPoint(featuresRightImage[RIGHT]->data.db[2*i],featuresRightImage[RIGHT]->data.db[2*i+1]),1,CV_RGB(0,0,0));
                 }
-
-
-
-
+                
                 cvShowImage("Left",image_color[LEFT]);
                 cvShowImage("Right",image_color[RIGHT]);
                 cvShowImage("Last Left",last_image_color[LEFT]);
@@ -696,7 +693,7 @@ int main(void)
                 //Check if the measurement is valid, otherwise, ignore
                 else if (valid_measurement)
                 {
-
+                    //Initialise update params (will be set as necessary))
                     int num_curves_to_update = 0;
                     curves_to_update.clear();
                     std::vector<CvMat *> correspondence_matrices;
@@ -716,9 +713,9 @@ int main(void)
                         }
 
                         EKF->GetSplitMatrices(t_splitL[1],A1,A2);
-                        cvMatMul(A1,tempx,z1);                    //Curve 1/2
+                        cvMatMul(A1,tempx,z1);                    //Curve 1 x and y
                         cvMatMul(A1,tempy,z2);
-                        cvMatMul(A2,tempx,z3);                    //Curve 3/4
+                        cvMatMul(A2,tempx,z3);                    //Curve 2 x and y
                         cvMatMul(A2,tempy,z4);
 
                         for (int i = 0; i < 4; i++)
@@ -741,9 +738,9 @@ int main(void)
                         }
 
                         EKF->GetSplitMatrices(t_splitR[1],A1,A2);
-                        cvMatMul(A1,tempx,z1);                    //Curve 1/2
+                        cvMatMul(A1,tempx,z1);                    //Curve 1 x and y
                         cvMatMul(A1,tempy,z2);
-                        cvMatMul(A2,tempx,z3);                    //Curve 3/4
+                        cvMatMul(A2,tempx,z3);                    //Curve 2 x and y
                         cvMatMul(A2,tempy,z4);
 
                         for (int i = 0; i < 4; i++)
